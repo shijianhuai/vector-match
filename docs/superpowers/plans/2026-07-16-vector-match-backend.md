@@ -815,6 +815,16 @@ async def test_embed_in_batches_preserves_order():
     vectors = await embed_in_batches(client, texts, batch_size=3, concurrency=2)
     assert vectors == [[float(i)] for i in range(1, 8)]
     await client.aclose()
+
+
+async def test_embed_in_batches_raises_embedding_error():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(500, text="boom")
+
+    client = make_client(handler, max_retries=1)
+    with pytest.raises(EmbeddingError):  # 不得被包装成 ExceptionGroup
+        await embed_in_batches(client, ["a", "b"], batch_size=1)
+    await client.aclose()
 ```
 
 - [ ] **Step 2: 跑测试确认失败**
@@ -894,16 +904,16 @@ async def embed_in_batches(
             results[offset + j] = v
 
     chunks = [(i, texts[i : i + batch_size]) for i in range(0, len(texts), batch_size)]
-    async with asyncio.TaskGroup() as tg:
-        for offset, chunk in chunks:
-            tg.create_task(one(offset, chunk))
+    await asyncio.gather(*(one(offset, chunk) for offset, chunk in chunks))
     return [results[i] for i in range(len(texts))]
 ```
+
+注意：并发必须用 `asyncio.gather`（异常按原样抛出），**不得用 `asyncio.TaskGroup`**——后者会把 `EmbeddingError` 包装成 `ExceptionGroup`，导致 worker 的 `except EmbeddingError` 失效。
 
 - [ ] **Step 4: 跑测试确认通过**
 
 Run: `cd backend && uv run pytest tests/test_embedding_client.py -v`
-Expected: 6 PASS
+Expected: 7 PASS
 
 - [ ] **Step 5: Commit**
 
