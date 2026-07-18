@@ -91,3 +91,13 @@ async def test_embed_in_batches_preserves_order():
     vectors = await embed_in_batches(client, texts, batch_size=3, concurrency=2)
     assert vectors == [[float(i)] for i in range(1, 8)]
     await client.aclose()
+
+
+async def test_embed_in_batches_raises_embedding_error():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(500, text="boom")
+
+    client = make_client(handler, max_retries=1)
+    with pytest.raises(EmbeddingError):  # 不得被包装成 ExceptionGroup
+        await embed_in_batches(client, ["a", "b"], batch_size=1)
+    await client.aclose()

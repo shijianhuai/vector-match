@@ -65,7 +65,5 @@ async def embed_in_batches(
             results[offset + j] = v
 
     chunks = [(i, texts[i : i + batch_size]) for i in range(0, len(texts), batch_size)]
-    async with asyncio.TaskGroup() as tg:
-        for offset, chunk in chunks:
-            tg.create_task(one(offset, chunk))
+    await asyncio.gather(*(one(offset, chunk) for offset, chunk in chunks))
     return [results[i] for i in range(len(texts))]
