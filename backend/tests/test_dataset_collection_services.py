@@ -8,6 +8,7 @@ from vector_match.repositories.collections import CollectionRepository
 from vector_match.repositories.data import DataRepository
 from vector_match.repositories.datasets import DatasetRepository
 from vector_match.services.collections import CollectionService
+from vector_match.services.data import DataService, PushItem
 from vector_match.services.datasets import DatasetService
 
 pytestmark = requires_db
@@ -28,9 +29,11 @@ async def test_dataset_delete_cascades(db_session):
     ds_svc = DatasetService(db_session)
     ds = await ds_svc.create(name="d", description="")
     col = await CollectionService(db_session).create(dataset_id=ds.id, parent_id=None, name="c", type="virtual")
+    data_svc = DataService(db_session)
+    await data_svc.push(col.id, [PushItem(q="基金A", a="001")])
+    items, _, _ = await data_svc.list_page(col.id, offset=0, page_size=10, search_text=None)
+    row = items[0]
     data_repo = DataRepository(db_session)
-    (row,) = await data_repo.create_many([{"dataset_id": ds.id, "collection_id": col.id, "q": "基金A", "a": "001"}])
-    await data_repo.add_index(row.id, "基金A", type="default")
 
     await ds_svc.delete(ds.id)
 
@@ -54,8 +57,11 @@ async def test_collection_delete_cascades_to_children_and_data(db_session):
     svc = CollectionService(db_session)
     folder = await svc.create(dataset_id=ds.id, parent_id=None, name="目录", type="folder")
     child = await svc.create(dataset_id=ds.id, parent_id=folder.id, name="子集", type="virtual")
+    data_svc = DataService(db_session)
+    await data_svc.push(child.id, [PushItem(q="基金B", a="002")])
+    items, _, _ = await data_svc.list_page(child.id, offset=0, page_size=10, search_text=None)
+    row = items[0]
     data_repo = DataRepository(db_session)
-    (row,) = await data_repo.create_many([{"dataset_id": ds.id, "collection_id": child.id, "q": "基金B", "a": "002"}])
 
     await svc.delete([folder.id])
 
