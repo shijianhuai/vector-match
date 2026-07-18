@@ -58,6 +58,12 @@ class CollectionRepository:
         stmt = select(Collection).where(Collection.dataset_id == dataset_id, Collection.isvalid == 1)
         return list((await self.session.execute(stmt)).scalars().all())
 
+    async def list_by_parents(self, parent_ids: list[uuid.UUID]) -> list[Collection]:
+        if not parent_ids:
+            return []
+        stmt = select(Collection).where(Collection.parent_id.in_(parent_ids), Collection.isvalid == 1)
+        return list((await self.session.execute(stmt)).scalars().all())
+
     async def soft_delete_many(self, collection_ids: list[uuid.UUID]) -> None:
         if not collection_ids:
             return
