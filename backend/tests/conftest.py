@@ -1,7 +1,9 @@
 import os
 
+import httpx
 import pytest
 import pytest_asyncio
+from asgi_lifespan import LifespanManager
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL", "")
@@ -31,3 +33,28 @@ async def db_session():
             await session.close()
             await trans.rollback()
     await engine.dispose()
+
+
+@pytest_asyncio.fixture
+async def api_app(db_session):
+    from vector_match.api.deps import get_db
+    from vector_match.main import create_app
+
+    app = create_app()
+
+    async def _override_db():
+        yield db_session
+
+    app.dependency_overrides[get_db] = _override_db
+    async with LifespanManager(app) as manager:
+        yield manager.app
+
+
+@pytest_asyncio.fixture
+async def client(api_app):
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=api_app),
+        base_url="http://test",
+        headers={"Authorization": "Bearer dev-key"},
+    ) as c:
+        yield c
