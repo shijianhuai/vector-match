@@ -2703,41 +2703,19 @@ git commit -m "feat: add search pipeline with rrf fusion and rerank"
 - Create: `backend/src/vector_match/api/routers/health.py`
 - Create: `backend/src/vector_match/api/routers/datasets.py`
 - Create: `backend/src/vector_match/main.py`
+- Modify: `backend/tests/conftest.py`（追加 `api_app` / `client` fixture）
 - Test: `backend/tests/test_api_app.py`
 
 **Interfaces:**
 - Consumes: `DatasetService`（Task 12）、`Settings`（Task 2）
 - Produces: `create_app()`、`verify_api_key`、`get_db`、`get_embedding`、`get_rerank` 依赖；`CamelModel` 基类与全部 schema；`/health` 与 datasets 五个端点。后续 Task 17/18 复用同一批 schema 与依赖。
 
-- [ ] **Step 1: 写失败测试**
+- [ ] **Step 1: 写失败测试**（`client` fixture 在 Step 3 中加入 conftest，此处直接使用）
 
 ```python
-import httpx
-import pytest_asyncio
-from asgi_lifespan import LifespanManager
-
 from tests.conftest import requires_db
-from vector_match.api.deps import get_db
-from vector_match.main import create_app
 
 pytestmark = requires_db
-
-
-@pytest_asyncio.fixture
-async def client(db_session):
-    app = create_app()
-
-    async with LifespanManager(app) as manager:
-        async def _override_db():
-            yield db_session
-
-        manager.app.dependency_overrides[get_db] = _override_db
-        async with httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=manager.app),
-            base_url="http://test",
-            headers={"Authorization": "Bearer dev-key"},
-        ) as c:
-            yield c
 
 
 async def test_health(client):
@@ -3086,6 +3064,36 @@ def create_app() -> FastAPI:
 app = create_app()
 ```
 
+`tests/conftest.py` 追加（供全部 API 测试复用的应用与客户端 fixture）：
+
+```python
+@pytest_asyncio.fixture
+async def api_app(db_session):
+    from vector_match.api.deps import get_db
+    from vector_match.main import create_app
+
+    app = create_app()
+
+    async with LifespanManager(app) as manager:
+        async def _override_db():
+            yield db_session
+
+        manager.app.dependency_overrides[get_db] = _override_db
+        yield manager.app
+
+
+@pytest_asyncio.fixture
+async def client(api_app):
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=api_app),
+        base_url="http://test",
+        headers={"Authorization": "Bearer dev-key"},
+    ) as c:
+        yield c
+```
+
+同时在 `tests/conftest.py` 顶部补充导入：`import httpx`、`from asgi_lifespan import LifespanManager`。
+
 - [ ] **Step 4: 跑测试确认通过**
 
 Run: `cd backend && TEST_DATABASE_URL=... uv run pytest tests/test_api_app.py -v`
@@ -3112,35 +3120,12 @@ git commit -m "feat: add fastapi app skeleton with auth and dataset router"
 - Consumes: `CollectionService`（Task 12）、`DataService` + `PushItem`（Task 13）、Task 16 的 schemas/deps
 - Produces: collections 五个端点、data 五个端点；查询参数驼峰用 `Query(alias=...)` 实现，代码内保持蛇形
 
-- [ ] **Step 1: 写失败测试**
+- [ ] **Step 1: 写失败测试**（`client` fixture 来自 Task 16 的 conftest）
 
 ```python
-import httpx
-import pytest_asyncio
-from asgi_lifespan import LifespanManager
-
 from tests.conftest import requires_db
-from vector_match.api.deps import get_db
-from vector_match.main import create_app
 
 pytestmark = requires_db
-
-
-@pytest_asyncio.fixture
-async def client(db_session):
-    app = create_app()
-
-    async with LifespanManager(app) as manager:
-        async def _override_db():
-            yield db_session
-
-        manager.app.dependency_overrides[get_db] = _override_db
-        async with httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=manager.app),
-            base_url="http://test",
-            headers={"Authorization": "Bearer dev-key"},
-        ) as c:
-            yield c
 
 
 async def _make_dataset(client) -> str:
@@ -3435,11 +3420,9 @@ git commit -m "feat: add collection and data routers"
 ```python
 import httpx
 import pytest_asyncio
-from asgi_lifespan import LifespanManager
 
 from tests.conftest import requires_db
-from vector_match.api.deps import get_db, get_embedding, get_rerank
-from vector_match.main import create_app
+from vector_match.api.deps import get_embedding, get_rerank
 from vector_match.repositories.data import DataRepository
 from vector_match.services.collections import CollectionService
 from vector_match.services.datasets import DatasetService
@@ -3466,7 +3449,7 @@ class FakeRerank:
 
 
 @pytest_asyncio.fixture
-async def client(db_session):
+async def client(api_app, db_session):
     ds = await DatasetService(db_session).create(name="d", description="")
     col = await CollectionService(db_session).create(
         dataset_id=ds.id, parent_id=None, name="基金集", type="virtual"
@@ -3483,23 +3466,16 @@ async def client(db_session):
     await repo.set_full_text_tokens(r1.id, "易方达 蓝筹 精选 混合")
     await repo.set_full_text_tokens(r2.id, "中欧 医疗 健康 混合")
 
-    app = create_app()
-
-    async with LifespanManager(app) as manager:
-        async def _override_db():
-            yield db_session
-
-        manager.app.dependency_overrides[get_db] = _override_db
-        manager.app.dependency_overrides[get_embedding] = lambda: FakeEmbedding()
-        manager.app.dependency_overrides[get_rerank] = lambda: FakeRerank()
-        async with httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=manager.app),
-            base_url="http://test",
-            headers={"Authorization": "Bearer dev-key"},
-        ) as c:
-            c.dataset_id = str(ds.id)
-            c.r1_id = str(r1.id)
-            yield c
+    api_app.dependency_overrides[get_embedding] = lambda: FakeEmbedding()
+    api_app.dependency_overrides[get_rerank] = lambda: FakeRerank()
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=api_app),
+        base_url="http://test",
+        headers={"Authorization": "Bearer dev-key"},
+    ) as c:
+        c.dataset_id = str(ds.id)
+        c.r1_id = str(r1.id)
+        yield c
 
 
 async def test_search_embedding(client):
