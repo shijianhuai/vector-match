@@ -29,6 +29,7 @@ services:
   worker:
     build: ./backend
     env_file: .env
+    restart: unless-stopped
     environment:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/vector_match
     command: uv run python -m vector_match.worker
