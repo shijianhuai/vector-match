@@ -60,3 +60,15 @@ async def test_reset_stale_processing(db_session):
     n = await repo.reset_stale_processing(stale_minutes=10)
     assert n == 1
     assert (await repo.get(task.id)).status == "pending"
+
+
+async def test_reset_stale_processing_error_at_max_attempts(db_session):
+    repo = TaskRepository(db_session)
+    await repo.enqueue_many([uuid.uuid4()])
+    (task,) = await repo.claim(1)
+    task.attempts = 2
+    task.update_time = utcnow() - timedelta(minutes=30)
+    await db_session.flush()
+    n = await repo.reset_stale_processing(stale_minutes=10, max_attempts=3)
+    assert n == 1
+    assert (await repo.get(task.id)).status == "error"

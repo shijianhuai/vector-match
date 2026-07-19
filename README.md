@@ -16,6 +16,8 @@ docker compose up -d --build
 curl http://localhost:8000/health
 ```
 
+注意：`EMBEDDING_DIM` 由 ORM 模型与建表迁移直接读取进程环境变量（`os.environ`），不经 `.env` 文件 / pydantic-settings；在 docker compose 之外运行时，必须将其导出为真实环境变量（如 `export EMBEDDING_DIM=1024`）。
+
 ## 本地开发
 
 ```bash

@@ -64,12 +64,23 @@ class TaskRepository:
         )
         await self.session.execute(stmt)
 
-    async def reset_stale_processing(self, stale_minutes: int = 10) -> int:
+    async def reset_stale_processing(self, stale_minutes: int = 10, max_attempts: int = 3) -> int:
         cutoff = utcnow() - timedelta(minutes=stale_minutes)
-        stmt = (
-            update(TrainingTask)
-            .where(TrainingTask.status == "processing", TrainingTask.update_time < cutoff)
-            .values(status="pending", next_retry_at=utcnow())
+        stale = update(TrainingTask).where(
+            TrainingTask.status == "processing", TrainingTask.update_time < cutoff
         )
-        result = await self.session.execute(stmt)
-        return result.rowcount
+        error_result = await self.session.execute(
+            stale.where(TrainingTask.attempts >= max_attempts - 1).values(
+                status="error",
+                attempts=TrainingTask.attempts + 1,
+                last_error="stale processing reset exceeded max attempts"[:500],
+            )
+        )
+        pending_result = await self.session.execute(
+            stale.where(TrainingTask.attempts < max_attempts - 1).values(
+                status="pending",
+                attempts=TrainingTask.attempts + 1,
+                next_retry_at=utcnow(),
+            )
+        )
+        return error_result.rowcount + pending_result.rowcount

@@ -18,7 +18,7 @@ services:
     build: ./backend
     env_file: .env
     environment:
-      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/vector_match
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/vector_match
     command: sh -c "uv run alembic upgrade head && uv run uvicorn vector_match.main:app --host 0.0.0.0 --port 8000"
     depends_on:
       postgres:
@@ -31,7 +31,7 @@ services:
     env_file: .env
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/vector_match
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/vector_match
     command: uv run python -m vector_match.worker
     depends_on:
       postgres:

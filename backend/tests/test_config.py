@@ -8,10 +8,8 @@ def test_api_key_set_parses_csv():
 
 def test_defaults():
     s = Settings()
-    assert s.embedding_dim == 1024
     assert s.recall_limit == 60
     assert s.rerank_candidates == 30
-    assert s.default_top_k == 10
     assert s.worker_max_attempts == 5
     assert s.database_url.startswith("postgresql+psycopg://")
 

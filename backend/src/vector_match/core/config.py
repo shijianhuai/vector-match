@@ -12,7 +12,6 @@ class Settings(BaseSettings):
     embedding_base_url: str = "https://api.openai.com/v1"
     embedding_api_key: str = ""
     embedding_model: str = "BAAI/bge-m3"
-    embedding_dim: int = 1024
 
     rerank_base_url: str = ""
     rerank_api_key: str = ""
@@ -25,7 +24,6 @@ class Settings(BaseSettings):
 
     recall_limit: int = 60
     rerank_candidates: int = 30
-    default_top_k: int = 10
 
     @property
     def api_key_set(self) -> set[str]:
