@@ -46,8 +46,8 @@ async def api_app(db_session):
         yield db_session
 
     app.dependency_overrides[get_db] = _override_db
-    async with LifespanManager(app) as manager:
-        yield manager.app
+    async with LifespanManager(app):
+        yield app
 
 
 @pytest_asyncio.fixture
