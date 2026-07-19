@@ -22,7 +22,7 @@ async def run(settings: Settings) -> None:
 
     try:
         async with session_factory() as session:
-            await TaskRepository(session).reset_stale_processing()
+            await TaskRepository(session).reset_stale_processing(max_attempts=settings.worker_max_attempts)
             await session.commit()
 
         while not stop.is_set():
