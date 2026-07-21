@@ -4,6 +4,8 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
+Role = Literal["owner", "editor", "viewer"]
+
 
 class CamelModel(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
@@ -25,10 +27,62 @@ class DatasetResponse(CamelModel):
     name: str
     description: str
     vector_model: str
+    my_role: Role
 
 
 class IdResponse(CamelModel):
     id: uuid.UUID
+
+
+class DatasetMemberCreateRequest(CamelModel):
+    username: str = Field(min_length=1)
+    role: Role
+
+
+class DatasetMemberUpdateRequest(CamelModel):
+    role: Role
+
+
+class DatasetMemberResponse(CamelModel):
+    id: uuid.UUID
+    dataset_id: uuid.UUID
+    user_id: uuid.UUID
+    username: str
+    role: Role
+
+
+class RegisterRequest(CamelModel):
+    username: str = Field(min_length=1)
+    password: str = Field(min_length=6)
+    email: str | None = Field(default=None, min_length=1)
+
+
+class LoginRequest(CamelModel):
+    username: str
+    password: str
+
+
+class UserResponse(CamelModel):
+    id: uuid.UUID
+    username: str
+    email: str | None
+    is_superuser: bool
+    is_active: bool
+
+
+class UserUpdateRequest(CamelModel):
+    is_active: bool | None = None
+    is_superuser: bool | None = None
+
+
+class UserListResponse(CamelModel):
+    list: list[UserResponse]
+    total: int
+
+
+class LoginResponse(CamelModel):
+    token: str
+    user: UserResponse
 
 
 class CollectionCreateRequest(CamelModel):

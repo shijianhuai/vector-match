@@ -29,8 +29,8 @@ class FakeRerank:
 
 
 @pytest_asyncio.fixture
-async def client(api_app, db_session):
-    ds = await DatasetService(db_session).create(name="d", description="")
+async def client(api_app, db_session, auth_headers, superuser):
+    ds = await DatasetService(db_session).create(user=superuser, name="d", description="")
     col = await CollectionService(db_session).create(dataset_id=ds.id, parent_id=None, name="基金集", type="virtual")
     repo = DataRepository(db_session)
     r1, r2 = await repo.create_many(
@@ -51,7 +51,7 @@ async def client(api_app, db_session):
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=api_app),
         base_url="http://test",
-        headers={"Authorization": "Bearer dev-key"},
+        headers=auth_headers,
     ) as c:
         c.dataset_id = str(ds.id)
         c.r1_id = str(r1.id)

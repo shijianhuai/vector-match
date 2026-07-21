@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDataList } from "@/hooks/use-data";
+import { useDataset } from "@/hooks/use-datasets";
 import { DataAddDialog } from "./data-add-dialog";
 import { DataEditDialog } from "./data-edit-dialog";
 import { DataDeleteDialog } from "./data-delete-dialog";
@@ -32,6 +33,10 @@ interface DataBrowserProps {
 export function DataBrowser({ datasetId, collectionId }: DataBrowserProps) {
   const router = useRouter();
   const collectionsPath = `/datasets/${datasetId}/collections`;
+
+  const { data: dataset } = useDataset(datasetId);
+  const myRole = dataset?.myRole ?? "viewer";
+  const canEdit = myRole === "owner" || myRole === "editor";
 
   const {
     data: collection,
@@ -139,10 +144,12 @@ export function DataBrowser({ datasetId, collectionId }: DataBrowserProps) {
           </h1>
         </div>
 
-        <Button onClick={() => setAddOpen(true)}>
-          <PlusIcon className="size-4" />
-          新增数据
-        </Button>
+        {canEdit && (
+          <Button onClick={() => setAddOpen(true)}>
+            <PlusIcon className="size-4" />
+            新增数据
+          </Button>
+        )}
       </div>
 
       <div className="flex items-center gap-2">
@@ -177,10 +184,12 @@ export function DataBrowser({ datasetId, collectionId }: DataBrowserProps) {
             <p className="mt-1 text-sm text-muted-foreground">
               点击右上角新增数据，或批量粘贴导入
             </p>
-            <Button className="mt-4" onClick={() => setAddOpen(true)}>
-              <PlusIcon className="size-4" />
-              新增数据
-            </Button>
+            {canEdit && (
+              <Button className="mt-4" onClick={() => setAddOpen(true)}>
+                <PlusIcon className="size-4" />
+                新增数据
+              </Button>
+            )}
           </div>
         )
       ) : (
@@ -221,25 +230,29 @@ export function DataBrowser({ datasetId, collectionId }: DataBrowserProps) {
                 </Badge>
 
                 <div className="hidden items-center gap-1 group-hover:flex">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-xs"
-                    aria-label="编辑"
-                    onClick={() => setEditingId(item.id)}
-                  >
-                    <PencilIcon className="size-3.5" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-xs"
-                    className="text-destructive hover:text-destructive"
-                    aria-label="删除"
-                    onClick={() => setDeletingItem(item)}
-                  >
-                    <Trash2Icon className="size-3.5" />
-                  </Button>
+                  {canEdit && (
+                    <>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        aria-label="编辑"
+                        onClick={() => setEditingId(item.id)}
+                      >
+                        <PencilIcon className="size-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        className="text-destructive hover:text-destructive"
+                        aria-label="删除"
+                        onClick={() => setDeletingItem(item)}
+                      >
+                        <Trash2Icon className="size-3.5" />
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

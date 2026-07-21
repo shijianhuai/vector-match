@@ -10,24 +10,35 @@ from vector_match.repositories.datasets import DatasetRepository
 from vector_match.services.collections import CollectionService
 from vector_match.services.data import DataService, PushItem
 from vector_match.services.datasets import DatasetService
+from vector_match.services.users import UserService
 
 pytestmark = requires_db
 
 
+async def _make_user(db_session):
+    from uuid import uuid4
+
+    return await UserService(db_session).create_user(username=f"testuser-{uuid4().hex[:8]}", password="password")
+
+
 async def test_dataset_crud(db_session):
+    user = await _make_user(db_session)
     svc = DatasetService(db_session)
-    ds = await svc.create(name="基金库", description="d")
-    assert (await svc.detail(ds.id)).name == "基金库"
+    ds = await svc.create(user=user, name="基金库", description="d")
+    ds_detail, _role = await svc.detail(ds.id)
+    assert ds_detail.name == "基金库"
     await svc.update(ds.id, name="基金库2")
-    assert (await svc.detail(ds.id)).name == "基金库2"
+    ds_detail, _role = await svc.detail(ds.id)
+    assert ds_detail.name == "基金库2"
     await svc.delete(ds.id)
     with pytest.raises(NotFoundError):
         await svc.detail(ds.id)
 
 
 async def test_dataset_delete_cascades(db_session):
+    user = await _make_user(db_session)
     ds_svc = DatasetService(db_session)
-    ds = await ds_svc.create(name="d", description="")
+    ds = await ds_svc.create(user=user, name="d", description="")
     col = await CollectionService(db_session).create(dataset_id=ds.id, parent_id=None, name="c", type="virtual")
     data_svc = DataService(db_session)
     await data_svc.push(col.id, [PushItem(q="基金A", a="001")])
@@ -44,16 +55,18 @@ async def test_dataset_delete_cascades(db_session):
 
 
 async def test_collection_create_validations(db_session):
+    user = await _make_user(db_session)
     svc = CollectionService(db_session)
     with pytest.raises(NotFoundError):
         await svc.create(dataset_id=uuid4(), parent_id=None, name="x", type="virtual")
-    ds = await DatasetService(db_session).create(name="d", description="")
+    ds = await DatasetService(db_session).create(user=user, name="d", description="")
     with pytest.raises(ValidationError):
         await svc.create(dataset_id=ds.id, parent_id=None, name="x", type="bad-type")
 
 
 async def test_collection_delete_cascades_to_children_and_data(db_session):
-    ds = await DatasetService(db_session).create(name="d", description="")
+    user = await _make_user(db_session)
+    ds = await DatasetService(db_session).create(user=user, name="d", description="")
     svc = CollectionService(db_session)
     folder = await svc.create(dataset_id=ds.id, parent_id=None, name="目录", type="folder")
     child = await svc.create(dataset_id=ds.id, parent_id=folder.id, name="子集", type="virtual")

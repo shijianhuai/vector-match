@@ -26,7 +26,7 @@ export default function DatasetLayout({
   const basePath = `/datasets/${datasetId}`;
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-6">
+    <div className="mx-auto w-full max-w-7xl px-6 py-6">
       <div className="flex items-center gap-3">
         <Link
           href="/datasets"

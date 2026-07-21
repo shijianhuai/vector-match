@@ -1,12 +1,14 @@
 import uuid
 
+from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from vector_match.core.exceptions import NotFoundError
-from vector_match.db.models import Dataset
+from vector_match.db.models import Dataset, User
 from vector_match.repositories.collections import CollectionRepository
 from vector_match.repositories.data import DataRepository
 from vector_match.repositories.datasets import DatasetRepository
+from vector_match.repositories.members import DatasetMemberRepository
 from vector_match.repositories.tasks import TaskRepository
 
 
@@ -17,20 +19,36 @@ class DatasetService:
         self.collections = CollectionRepository(session)
         self.data = DataRepository(session)
         self.tasks = TaskRepository(session)
+        self.members = DatasetMemberRepository(session)
 
-    async def create(self, name: str, description: str = "", vector_model: str = "") -> Dataset:
+    async def create(self, user: User, name: str, description: str = "", vector_model: str = "") -> Dataset:
         ds = await self.datasets.create(name=name, description=description, vector_model=vector_model)
+        await self.members.create(ds.id, user.id, "owner")
         await self.session.commit()
         return ds
 
-    async def list(self) -> list[Dataset]:
-        return await self.datasets.list()
+    async def list(self, user: User | None = None) -> list[tuple[Dataset, str]]:
+        if user is None or user.is_superuser:
+            items = await self.datasets.list()
+            return [(ds, "owner") for ds in items]
+        dataset_ids = await self.members.list_dataset_ids_by_user(user.id)
+        if not dataset_ids:
+            return []
+        items = await self.datasets.list_by_ids(dataset_ids)
+        members = [await self.members.get_valid(ds.id, user.id) for ds in items]
+        return [(ds, member.role if member else "viewer") for ds, member in zip(items, members, strict=True)]
 
-    async def detail(self, dataset_id: uuid.UUID) -> Dataset:
+    async def detail(self, dataset_id: uuid.UUID, user: User | None = None) -> tuple[Dataset, str]:
         ds = await self.datasets.get(dataset_id)
         if ds is None:
             raise NotFoundError("dataset not found")
-        return ds
+        role = "owner"
+        if user is not None and not user.is_superuser:
+            member = await self.members.get_valid(dataset_id, user.id)
+            if member is None:
+                raise HTTPException(status_code=403, detail="permission denied")
+            role = member.role
+        return ds, role
 
     async def update(self, dataset_id: uuid.UUID, name: str | None = None, description: str | None = None) -> Dataset:
         ds = await self.datasets.update(dataset_id, name=name, description=description)

@@ -10,5 +10,9 @@ class ValidationError(DomainError):
     pass
 
 
+class ConflictError(DomainError):
+    pass
+
+
 class ProviderConfigError(DomainError):
     pass

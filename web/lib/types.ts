@@ -1,8 +1,32 @@
+export type AuthUser = {
+  id: string;
+  username: string;
+  email: string | null;
+  isSuperuser: boolean;
+};
+
+export type Role = "owner" | "editor" | "viewer";
+
 export type Dataset = {
   id: string;
   name: string;
   description: string | null;
   vectorModel: string | null;
+  myRole: Role;
+};
+
+export type DatasetMember = {
+  userId: string;
+  username: string;
+  role: Role;
+};
+
+export type User = {
+  id: string;
+  username: string;
+  email: string | null;
+  isActive: boolean;
+  isSuperuser: boolean;
 };
 
 export type CollectionType = "folder" | "virtual";

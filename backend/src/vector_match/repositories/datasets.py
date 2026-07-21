@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import uuid
 
 from sqlalchemy import select, update
@@ -22,6 +24,12 @@ class DatasetRepository:
 
     async def list(self) -> list[Dataset]:
         stmt = select(Dataset).where(Dataset.isvalid == 1).order_by(Dataset.create_time.desc())
+        return list((await self.session.execute(stmt)).scalars().all())
+
+    async def list_by_ids(self, dataset_ids: list[uuid.UUID]) -> list[Dataset]:
+        if not dataset_ids:
+            return []
+        stmt = select(Dataset).where(Dataset.id.in_(dataset_ids), Dataset.isvalid == 1).order_by(Dataset.create_time.desc())
         return list((await self.session.execute(stmt)).scalars().all())
 
     async def update(

@@ -7,7 +7,10 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/vector_match"
-    api_keys: str = "dev-key"
+    jwt_secret: str
+    jwt_expire_minutes: int = 10080
+    admin_username: str = ""
+    admin_password: str = ""
 
     # 阿里云百炼 OpenAI 兼容模式 endpoint(华北2-北京)
     embedding_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
@@ -27,10 +30,6 @@ class Settings(BaseSettings):
 
     recall_limit: int = 60
     rerank_candidates: int = 30
-
-    @property
-    def api_key_set(self) -> set[str]:
-        return {k.strip() for k in self.api_keys.split(",") if k.strip()}
 
 
 @lru_cache

@@ -1,7 +1,8 @@
 """端到端冒烟：灌入示例基金数据，验证三种检索模式。
 
 用法：先启动服务（docker compose up -d），再执行 python scripts/smoke_fund_match.py
-环境变量：BASE_URL（默认 http://localhost:8000）、API_KEY（默认 dev-key）
+环境变量：BASE_URL（默认 http://localhost:8000）、
+         SMOKE_USERNAME / SMOKE_PASSWORD（默认 admin / admin123；账号不存在时自动注册）
 """
 
 import os
@@ -11,8 +12,8 @@ import time
 import httpx
 
 BASE_URL = os.environ.get("BASE_URL", "http://localhost:8000")
-API_KEY = os.environ.get("API_KEY", "dev-key")
-HEADERS = {"Authorization": f"Bearer {API_KEY}"}
+USERNAME = os.environ.get("SMOKE_USERNAME", "admin")
+PASSWORD = os.environ.get("SMOKE_PASSWORD", "admin123")
 
 FUNDS = [
     {"q": "易方达蓝筹精选混合", "a": "005827", "indexes": [{"text": "易方达蓝筹"}]},
@@ -24,8 +25,20 @@ FUNDS = [
 ]
 
 
+def get_token(client: httpx.Client) -> str:
+    resp = client.post("/api/auth/login", json={"username": USERNAME, "password": PASSWORD})
+    if resp.status_code == 401:
+        # 账号不存在时自动注册后登录
+        client.post("/api/auth/register", json={"username": USERNAME, "password": PASSWORD}).raise_for_status()
+        resp = client.post("/api/auth/login", json={"username": USERNAME, "password": PASSWORD})
+    resp.raise_for_status()
+    return resp.json()["token"]
+
+
 def main() -> int:
-    client = httpx.Client(base_url=BASE_URL, headers=HEADERS, timeout=30)
+    with httpx.Client(base_url=BASE_URL, timeout=30) as auth_client:
+        token = get_token(auth_client)
+    client = httpx.Client(base_url=BASE_URL, headers={"Authorization": f"Bearer {token}"}, timeout=30)
 
     ds = client.post("/api/core/dataset/create", json={"name": f"smoke-基金库-{int(time.time())}"}).json()
     dataset_id = ds["id"]

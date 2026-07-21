@@ -3,7 +3,12 @@ import uuid
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from vector_match.api.deps import get_db, verify_api_key
+from vector_match.api.deps import (
+    get_current_user,
+    get_db,
+    require_collection_access,
+    require_data_access,
+)
 from vector_match.api.schemas import (
     DataDetailResponse,
     DataItemResponse,
@@ -16,17 +21,17 @@ from vector_match.api.schemas import (
 )
 from vector_match.services.data import DataService, PushItem
 
-router = APIRouter(prefix="/api/core/dataset/data", dependencies=[Depends(verify_api_key)])
+router = APIRouter(prefix="/api/core/dataset/data", dependencies=[Depends(get_current_user)])
 
 
-@router.post("/pushData", response_model=PushDataResponse)
+@router.post("/pushData", dependencies=[Depends(require_collection_access("editor"))], response_model=PushDataResponse)
 async def push_data(req: PushDataRequest, session: AsyncSession = Depends(get_db)):
     items = [PushItem(q=item.q, a=item.a, indexes=[idx.text for idx in item.indexes]) for item in req.data]
     n = await DataService(session).push(req.collection_id, items)
     return PushDataResponse(insert_len=n)
 
 
-@router.get("/list", response_model=DataListResponse)
+@router.get("/list", dependencies=[Depends(require_collection_access("viewer"))], response_model=DataListResponse)
 async def list_data(
     collection_id: uuid.UUID = Query(alias="collectionId"),
     offset: int = Query(default=0, ge=0),
@@ -51,7 +56,7 @@ async def list_data(
     )
 
 
-@router.get("/detail", response_model=DataDetailResponse)
+@router.get("/detail", dependencies=[Depends(require_data_access("viewer"))], response_model=DataDetailResponse)
 async def data_detail(id: uuid.UUID, session: AsyncSession = Depends(get_db)):
     data, indexes, trained = await DataService(session).detail(id)
     return DataDetailResponse(
@@ -65,14 +70,14 @@ async def data_detail(id: uuid.UUID, session: AsyncSession = Depends(get_db)):
     )
 
 
-@router.put("/update", response_model=IdResponse)
+@router.put("/update", dependencies=[Depends(require_data_access("editor"))], response_model=IdResponse)
 async def update_data(req: DataUpdateRequest, session: AsyncSession = Depends(get_db)):
     indexes = [idx.text for idx in req.indexes] if req.indexes is not None else None
     await DataService(session).update(req.data_id, q=req.q, a=req.a, indexes=indexes)
     return IdResponse(id=req.data_id)
 
 
-@router.delete("/delete", response_model=IdResponse)
+@router.delete("/delete", dependencies=[Depends(require_data_access("editor"))], response_model=IdResponse)
 async def delete_data(id: uuid.UUID, session: AsyncSession = Depends(get_db)):
     await DataService(session).delete(id)
     return IdResponse(id=id)

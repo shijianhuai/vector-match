@@ -19,6 +19,9 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/vector_match
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     command: sh -c "uv run alembic upgrade head && uv run uvicorn vector_match.main:app --host 0.0.0.0 --port 8000"
     depends_on:
       postgres:
@@ -32,6 +35,9 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/vector_match
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     command: uv run python -m vector_match.worker
     depends_on:
       postgres:
@@ -42,12 +48,10 @@ services:
     restart: unless-stopped
     environment:
       BACKEND_URL: http://app:8000
-      # 默认复用后端的 API_KEYS（仅适用于单 key；逗号分隔多 key 时请显式设置 API_KEY 为其中一个）
-      API_KEY: ${API_KEY:-${API_KEYS:-dev-key}}
     depends_on:
       - app
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000 >/dev/null 2>&1 || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/login >/dev/null 2>&1 || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3

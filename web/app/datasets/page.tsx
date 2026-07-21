@@ -285,7 +285,7 @@ export default function DatasetsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-8">
+    <div className="mx-auto w-full max-w-7xl px-6 py-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">知识库</h1>
         <div className="flex items-center gap-2">

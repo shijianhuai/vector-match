@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import DateTime, SmallInteger, Text
+from sqlalchemy import Boolean, DateTime, Index, SmallInteger, Text, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from vector_match.db.base import Base, TimestampValidMixin, utcnow
@@ -18,6 +18,30 @@ class Dataset(TimestampValidMixin, Base):
     name: Mapped[str] = mapped_column(Text)
     description: Mapped[str] = mapped_column(Text, default="")
     vector_model: Mapped[str] = mapped_column(Text)
+
+
+class User(TimestampValidMixin, Base):
+    __tablename__ = "users"
+    __table_args__ = (
+        Index("ix_users_username", "username", unique=True, postgresql_where=text("isvalid = 1")),
+        Index("ix_users_email", "email", unique=True, postgresql_where=text("isvalid = 1")),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    username: Mapped[str] = mapped_column(Text)
+    email: Mapped[str | None] = mapped_column(Text, nullable=True)
+    password_hash: Mapped[str] = mapped_column(Text)
+    is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class DatasetMember(TimestampValidMixin, Base):
+    __tablename__ = "dataset_members"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    dataset_id: Mapped[uuid.UUID] = mapped_column(index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(index=True)
+    role: Mapped[str] = mapped_column(Text)
 
 
 class Collection(TimestampValidMixin, Base):

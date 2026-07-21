@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:8000";
-const API_KEY = process.env.API_KEY ?? "dev-key";
 
 async function proxyHandler(
   req: NextRequest,
@@ -9,12 +8,17 @@ async function proxyHandler(
 ) {
   const { path } = await params;
   const segments = path.map((segment) => encodeURIComponent(segment)).join("/");
-  const targetUrl = `${BACKEND_URL}/api/core/dataset/${segments}${req.nextUrl.search}`;
+  const targetUrl = `${BACKEND_URL}/api/${segments}${req.nextUrl.search}`;
 
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${API_KEY}`,
-    "Content-Type": "application/json",
-  };
+  const headers: Record<string, string> = {};
+  const session = req.cookies.get("session")?.value;
+  if (session) {
+    headers.Authorization = `Bearer ${session}`;
+  }
+
+  if (req.headers.get("content-type")?.includes("application/json")) {
+    headers["Content-Type"] = "application/json";
+  }
 
   let body: string | undefined;
   if (
@@ -50,4 +54,5 @@ async function proxyHandler(
 export const GET = proxyHandler;
 export const POST = proxyHandler;
 export const PUT = proxyHandler;
+export const PATCH = proxyHandler;
 export const DELETE = proxyHandler;

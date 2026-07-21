@@ -16,6 +16,7 @@ import {
   useCollections,
   type CollectionAncestor,
 } from "@/hooks/use-collections";
+import { useDataset } from "@/hooks/use-datasets";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -62,6 +63,10 @@ export function CollectionBrowser({
 }: CollectionBrowserProps) {
   const router = useRouter();
   const basePath = `/datasets/${datasetId}/collections`;
+
+  const { data: dataset } = useDataset(datasetId);
+  const myRole = dataset?.myRole ?? "viewer";
+  const canEdit = myRole === "owner" || myRole === "editor";
 
   const [offset, setOffset] = React.useState(0);
   const [searchText, setSearchText] = React.useState("");
@@ -167,10 +172,14 @@ export function CollectionBrowser({
       />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Button onClick={() => setCreateOpen(true)}>
-          <PlusIcon />
-          新建集合
-        </Button>
+        {canEdit ? (
+          <Button onClick={() => setCreateOpen(true)}>
+            <PlusIcon />
+            新建集合
+          </Button>
+        ) : (
+          <div />
+        )}
         <div className="relative w-full sm:w-64">
           <SearchIcon className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -201,6 +210,7 @@ export function CollectionBrowser({
       ) : list.length === 0 ? (
         <EmptyState
           searchText={searchText}
+          canEdit={canEdit}
           onCreate={() => setCreateOpen(true)}
         />
       ) : (
@@ -209,14 +219,16 @@ export function CollectionBrowser({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-10">
-                    <Checkbox
-                      checked={allSelected}
-                      indeterminate={someSelected}
-                      onCheckedChange={toggleAll}
-                      aria-label="全选"
-                    />
-                  </TableHead>
+                  {canEdit && (
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={allSelected}
+                        indeterminate={someSelected}
+                        onCheckedChange={toggleAll}
+                        aria-label="全选"
+                      />
+                    </TableHead>
+                  )}
                   <TableHead>名称</TableHead>
                   <TableHead>类型</TableHead>
                   <TableHead className="w-20">操作</TableHead>
@@ -229,15 +241,17 @@ export function CollectionBrowser({
                     className="cursor-pointer"
                     onClick={() => handleRowClick(collection)}
                   >
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <Checkbox
-                        checked={selectedIds.has(collection.id)}
-                        onCheckedChange={() =>
-                          toggleSelection(collection.id)
-                        }
-                        aria-label={`选择 ${collection.name}`}
-                      />
-                    </TableCell>
+                    {canEdit && (
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selectedIds.has(collection.id)}
+                          onCheckedChange={() =>
+                            toggleSelection(collection.id)
+                          }
+                          aria-label={`选择 ${collection.name}`}
+                        />
+                      </TableCell>
+                    )}
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {collection.type === "folder" ? (
@@ -262,36 +276,38 @@ export function CollectionBrowser({
                       </Badge>
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger
-                          render={
-                            <Button
-                              variant="ghost"
-                              size="icon-xs"
-                              aria-label="操作"
+                      {canEdit && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger
+                            render={
+                              <Button
+                                variant="ghost"
+                                size="icon-xs"
+                                aria-label="操作"
+                              >
+                                <MoreHorizontalIcon />
+                              </Button>
+                            }
+                          />
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() =>
+                                setRenameCollection(collection)
+                              }
                             >
-                              <MoreHorizontalIcon />
-                            </Button>
-                          }
-                        />
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() =>
-                              setRenameCollection(collection)
-                            }
-                          >
-                            重命名
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            variant="destructive"
-                            onClick={() =>
-                              setDeleteIds([collection.id])
-                            }
-                          >
-                            删除
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                              重命名
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onClick={() =>
+                                setDeleteIds([collection.id])
+                              }
+                            >
+                              删除
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -329,7 +345,7 @@ export function CollectionBrowser({
         </>
       )}
 
-      {selectedIds.size > 0 && (
+      {canEdit && selectedIds.size > 0 && (
         <div className="fixed bottom-6 left-1/2 z-40 w-full max-w-md -translate-x-1/2 px-4">
           <Card className="flex items-center justify-between gap-4 p-4 shadow-lg">
             <span className="text-sm">
@@ -458,9 +474,11 @@ function CollectionSkeleton() {
 
 function EmptyState({
   searchText,
+  canEdit,
   onCreate,
 }: {
   searchText: string;
+  canEdit: boolean;
   onCreate: () => void;
 }) {
   return (
@@ -474,7 +492,7 @@ function EmptyState({
           <>暂无集合</>
         )}
       </p>
-      {!searchText && (
+      {!searchText && canEdit && (
         <Button onClick={onCreate}>
           <PlusIcon />
           新建集合

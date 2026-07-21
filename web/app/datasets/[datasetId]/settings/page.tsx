@@ -12,6 +12,7 @@ import {
   useDeleteDataset,
   useUpdateDataset,
 } from "@/hooks/use-datasets";
+import { MemberPanel } from "@/components/members/member-panel";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -47,6 +48,10 @@ export default function DatasetSettingsPage() {
   const { data: dataset, isLoading } = useDataset(datasetId);
   const updateMutation = useUpdateDataset();
   const deleteMutation = useDeleteDataset();
+
+  const myRole = dataset?.myRole ?? "viewer";
+  const canEdit = myRole === "owner" || myRole === "editor";
+  const canDelete = myRole === "owner";
 
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
@@ -114,6 +119,7 @@ export default function DatasetSettingsPage() {
           </Label>
           <Input
             id="settings-name"
+            disabled={!canEdit}
             aria-invalid={Boolean(form.formState.errors.name)}
             {...form.register("name")}
           />
@@ -128,6 +134,7 @@ export default function DatasetSettingsPage() {
           <Textarea
             id="settings-description"
             rows={3}
+            disabled={!canEdit}
             placeholder="可选，简要说明知识库用途"
             aria-invalid={Boolean(form.formState.errors.description)}
             {...form.register("description")}
@@ -138,12 +145,14 @@ export default function DatasetSettingsPage() {
             </p>
           )}
         </div>
-        <Button type="submit" disabled={updateMutation.isPending}>
-          {updateMutation.isPending && (
-            <Loader2Icon className="animate-spin" />
-          )}
-          保存
-        </Button>
+        {canEdit && (
+          <Button type="submit" disabled={updateMutation.isPending}>
+            {updateMutation.isPending && (
+              <Loader2Icon className="animate-spin" />
+            )}
+            保存
+          </Button>
+        )}
       </form>
 
       <div className="space-y-3 border-t pt-6">
@@ -170,23 +179,31 @@ export default function DatasetSettingsPage() {
             <dt className="w-20 shrink-0 text-muted-foreground">向量模型</dt>
             <dd>{dataset?.vectorModel ?? "—"}</dd>
           </div>
+          <div className="flex items-center gap-2">
+            <dt className="w-20 shrink-0 text-muted-foreground">我的角色</dt>
+            <dd>{myRole}</dd>
+          </div>
         </dl>
       </div>
 
-      <Card className="gap-3 border-destructive/50 p-4">
-        <h2 className="text-sm font-medium text-destructive">危险区</h2>
-        <p className="text-sm text-muted-foreground">
-          删除知识库将级联删除其下全部集合与数据，该操作无法恢复。
-        </p>
-        <div>
-          <Button
-            variant="destructive"
-            onClick={() => setDeleteOpen(true)}
-          >
-            删除知识库
-          </Button>
-        </div>
-      </Card>
+      <MemberPanel datasetId={datasetId} myRole={myRole} />
+
+      {canDelete && (
+        <Card className="gap-3 border-destructive/50 p-4">
+          <h2 className="text-sm font-medium text-destructive">危险区</h2>
+          <p className="text-sm text-muted-foreground">
+            删除知识库将级联删除其下全部集合与数据，该操作无法恢复。
+          </p>
+          <div>
+            <Button
+              variant="destructive"
+              onClick={() => setDeleteOpen(true)}
+            >
+              删除知识库
+            </Button>
+          </div>
+        </Card>
+      )}
 
       <AlertDialog
         open={deleteOpen}

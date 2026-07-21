@@ -6,12 +6,16 @@ from vector_match.repositories.tasks import TaskRepository
 from vector_match.services.collections import CollectionService
 from vector_match.services.data import DataService, PushItem
 from vector_match.services.datasets import DatasetService
+from vector_match.services.users import UserService
 
 pytestmark = requires_db
 
 
 async def _make_virtual_collection(db_session, type="virtual"):
-    ds = await DatasetService(db_session).create(name="d", description="")
+    from uuid import uuid4
+
+    user = await UserService(db_session).create_user(username=f"testuser-{uuid4().hex[:8]}", password="password")
+    ds = await DatasetService(db_session).create(user=user, name="d", description="")
     return await CollectionService(db_session).create(dataset_id=ds.id, parent_id=None, name="c", type=type)
 
 

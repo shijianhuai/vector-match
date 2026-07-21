@@ -1,15 +1,21 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from vector_match.api.deps import get_db, get_embedding, get_rerank, verify_api_key
+from vector_match.api.deps import (
+    get_current_user,
+    get_db,
+    get_embedding,
+    get_rerank,
+    require_dataset_access,
+)
 from vector_match.api.schemas import SearchHitResponse, SearchRequest
 from vector_match.core.config import Settings, get_settings
 from vector_match.services.search import SearchParams, SearchService
 
-router = APIRouter(prefix="/api/core/dataset", dependencies=[Depends(verify_api_key)])
+router = APIRouter(prefix="/api/core/dataset", dependencies=[Depends(get_current_user)])
 
 
-@router.post("/search", response_model=list[SearchHitResponse])
+@router.post("/search", dependencies=[Depends(require_dataset_access("viewer"))], response_model=list[SearchHitResponse])
 async def search(
     req: SearchRequest,
     session: AsyncSession = Depends(get_db),

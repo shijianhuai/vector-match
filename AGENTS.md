@@ -13,16 +13,18 @@ vector-match：通用短文本匹配服务（语义/全文/混合检索 + 重排
   - `services/` 业务逻辑、`repositories/` 数据访问、`db/models.py` ORM、`worker/` 训练进程、`providers/` embedding/rerank 客户端
   - `alembic/` 迁移
 - `web/`：Next.js 16（App Router）+ TypeScript + Tailwind v4 + shadcn/ui + TanStack Query
-  - `app/datasets/`：知识库管理页面（列表 / 详情壳 / collections / data / search / settings）
-  - `app/api/proxy/[...path]/route.ts`：BFF 代理，服务端注入 `Authorization: Bearer ${API_KEY}` 转发到 `${BACKEND_URL}/api/core/dataset/*`
+  - `app/datasets/`：知识库管理页面（列表 / 详情壳 / collections / data / search / settings）；`app/login`、`app/register`、`app/settings/users`：认证与用户管理页
+  - `app/api/proxy/[...path]/route.ts`：BFF 代理，从 httpOnly Cookie `session` 读 JWT 作为 Bearer 转发到 `${BACKEND_URL}/api/*`；`app/api/auth/login|logout/route.ts`：写/清 Cookie
+  - `proxy.ts`：Next 16 路由守卫（middleware.ts 已废弃更名），未登录访问受护页面跳 /login
   - `lib/api.ts` 按域分组的 API client、`lib/types.ts` 与后端 camelCase 对齐的类型、`hooks/` react-query hooks
   - `web/AGENTS.md`：Next.js 16 专项提醒（params/searchParams 为 Promise、useSearchParams 需 Suspense 等）
 - `docker-compose.yml`：postgres / app / worker / web 四服务
-- `docs/superpowers/specs/2026-07-16-vector-match-design.md`：后端设计文档（API 表、数据模型、检索流程）
+- `docs/superpowers/specs/2026-07-16-vector-match-design.md`：后端设计文档（API 表、数据模型、检索流程）；`2026-07-21-auth-rbac-design.md`：认证与权限设计
 
 ## 关键约定
 
-- **认证**：除 `/health` 外全部 `Authorization: Bearer <key>`，密钥来自后端 `API_KEYS` 环境变量（逗号分隔）。前端不持 key，一律走 BFF 代理
+- **认证**：JWT。`POST /api/auth/login` 拿 token；除 `/health`、`/api/auth/register|login` 外全部 `Authorization: Bearer <jwt>`（`JWT_SECRET` 环境变量，必填）。前端不持 token：登录由 BFF 写 httpOnly Cookie，代理转发时注入
+- **授权**：按知识库成员角色 `owner/editor/viewer`（`dataset_members` 表）+ 站点级 superuser；依赖 `require_dataset_access` / `require_collection_access` / `require_data_access` 按端点族解析 id 后判定；dataset detail 响应含 `myRole` 供前端权限化 UI
 - **API 形状**：字段 camelCase；分页参数 `offset`/`pageSize`（≤100）；collection 删除走 body `{collectionIds}`，dataset/data 删除走 `?id=`；错误体统一 `{detail: string}`（422 时 detail 为数组）
 - **数据流**：pushData（≤200 条/批）→ worker 异步训练 → `trained=true` 后才可检索；folder 集合不能 pushData（仅 virtual）
 - **Embedding**：`EMBEDDING_DIM` 由 ORM/迁移直接读 `os.environ`，不经 pydantic-settings；compose 之外运行必须显式 export
