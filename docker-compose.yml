@@ -37,5 +37,22 @@ services:
       postgres:
         condition: service_healthy
 
+  web:
+    build: ./web
+    restart: unless-stopped
+    environment:
+      BACKEND_URL: http://app:8000
+      # 默认复用后端的 API_KEYS（仅适用于单 key；逗号分隔多 key 时请显式设置 API_KEY 为其中一个）
+      API_KEY: ${API_KEY:-${API_KEYS:-dev-key}}
+    depends_on:
+      - app
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000 >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    ports:
+      - "3000:3000"
+
 volumes:
   pgdata:
