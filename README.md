@@ -1,9 +1,10 @@
 # vector-match
 
-通用化文本匹配服务：语义检索 / 全文检索 / 混合检索 + 重排。适用于基金名称匹配基金 ID、实体名称标准化、短文本相似匹配等场景。检索引擎参考 FastGPT 知识库设计。
+通用化文本匹配服务：语义检索 / 全文检索 / 混合检索 + 重排。适用于基金名称匹配基金 ID、实体名称标准化、短文本相似匹配等场景。检索引擎参考 FastGPT 知识库设计。自带知识库管理 Web 界面（参考 FastGPT 数据集模块裁剪）。
 
 ## 架构
 
+- `web`：Next.js 16 知识库管理界面（数据集/集合/数据/搜索测试），BFF 代理注入 API Key
 - `app`：FastAPI，REST API（`/api/core/dataset/...`）
 - `worker`：训练进程，从 PG 队列消费任务，调 embedding API 写入向量
 - `postgres`：pgvector，承载业务数据 + 向量（HNSW）+ 全文检索 + 任务队列
@@ -13,12 +14,19 @@
 ```bash
 cp .env.example .env   # 填入 EMBEDDING_API_KEY / RERANK_API_KEY
 docker compose up -d --build
-curl http://localhost:8000/health
 ```
 
-注意：`EMBEDDING_DIM` 由 ORM 模型与建表迁移直接读取进程环境变量（`os.environ`），不经 `.env` 文件 / pydantic-settings；在 docker compose 之外运行时，必须将其导出为真实环境变量（如 `export EMBEDDING_DIM=1024`）。
+- Web 界面：http://localhost:3000
+- API 健康检查：`curl http://localhost:8000/health`
+
+注意：
+
+- `EMBEDDING_DIM` 由 ORM 模型与建表迁移直接读取进程环境变量（`os.environ`），不经 `.env` 文件 / pydantic-settings；在 docker compose 之外运行时，必须将其导出为真实环境变量（如 `export EMBEDDING_DIM=1024`）。
+- compose 中 web 服务默认复用 `.env` 的 `API_KEYS` 作为访问后端的密钥（仅适用单 key；逗号分隔多 key 时需显式设置 `API_KEY` 为其中一个）。
 
 ## 本地开发
+
+后端：
 
 ```bash
 cd backend
@@ -30,6 +38,16 @@ TEST_DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/vector_m
   uv run pytest                  # 全部测试
 uv run ruff check
 uv run uvicorn vector_match.main:app --reload
+```
+
+注意：`vm-test-pg` 与 compose 的 postgres 都占用 5432，两者不能同时运行。
+
+前端：
+
+```bash
+cd web
+npm install
+npm run dev    # http://localhost:3000，代理默认指向 http://localhost:8000（可用 BACKEND_URL / API_KEY 覆盖）
 ```
 
 ## API 一览

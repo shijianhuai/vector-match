@@ -1,0 +1,42 @@
+# AGENTS.md
+
+本文件为 AI 编码代理提供项目级工作指南。
+
+## 项目概览
+
+vector-match：通用短文本匹配服务（语义/全文/混合检索 + 重排），检索引擎与 Web 界面均参考 FastGPT 知识库模块并按 YAGNI 裁剪（无文件上传、无 QA 拆分、无图片、无多租户）。
+
+## 仓库结构
+
+- `backend/`：Python 3.13 + FastAPI + SQLAlchemy 2.x(async) + PostgreSQL/pgvector，包管理用 `uv`
+  - `src/vector_match/api/routers/`：HTTP 路由；`api/schemas.py`：Pydantic v2 schema（**JSON 序列化为 camelCase**）
+  - `services/` 业务逻辑、`repositories/` 数据访问、`db/models.py` ORM、`worker/` 训练进程、`providers/` embedding/rerank 客户端
+  - `alembic/` 迁移
+- `web/`：Next.js 16（App Router）+ TypeScript + Tailwind v4 + shadcn/ui + TanStack Query
+  - `app/datasets/`：知识库管理页面（列表 / 详情壳 / collections / data / search / settings）
+  - `app/api/proxy/[...path]/route.ts`：BFF 代理，服务端注入 `Authorization: Bearer ${API_KEY}` 转发到 `${BACKEND_URL}/api/core/dataset/*`
+  - `lib/api.ts` 按域分组的 API client、`lib/types.ts` 与后端 camelCase 对齐的类型、`hooks/` react-query hooks
+  - `web/AGENTS.md`：Next.js 16 专项提醒（params/searchParams 为 Promise、useSearchParams 需 Suspense 等）
+- `docker-compose.yml`：postgres / app / worker / web 四服务
+- `docs/superpowers/specs/2026-07-16-vector-match-design.md`：后端设计文档（API 表、数据模型、检索流程）
+
+## 关键约定
+
+- **认证**：除 `/health` 外全部 `Authorization: Bearer <key>`，密钥来自后端 `API_KEYS` 环境变量（逗号分隔）。前端不持 key，一律走 BFF 代理
+- **API 形状**：字段 camelCase；分页参数 `offset`/`pageSize`（≤100）；collection 删除走 body `{collectionIds}`，dataset/data 删除走 `?id=`；错误体统一 `{detail: string}`（422 时 detail 为数组）
+- **数据流**：pushData（≤200 条/批）→ worker 异步训练 → `trained=true` 后才可检索；folder 集合不能 pushData（仅 virtual）
+- **Embedding**：`EMBEDDING_DIM` 由 ORM/迁移直接读 `os.environ`，不经 pydantic-settings；compose 之外运行必须显式 export
+
+## 常用命令
+
+后端（`backend/`）：`uv sync`、`uv run pytest`（DB 测试需 `TEST_DATABASE_URL` 指向测试 pg）、`uv run ruff check`、`uv run alembic upgrade head`
+
+前端（`web/`）：`npm run dev`、`npx tsc --noEmit`、`npm run lint`、`npm run build`
+
+全栈：`docker compose up -d --build`（web: http://localhost:3000，api: :8000）
+
+## 环境注意事项
+
+- 本机测试 pg 容器 `vm-test-pg`（5432）与 compose postgres 端口冲突，二者不可同时运行
+- Next.js 16 `output: "standalone"` 下不要用 `next start` 验证 route handler，用 `node .next/standalone/server.js`（需 HOSTNAME/PORT 环境变量）
+- 写 web 代码前先看 `web/AGENTS.md` 的 Next 16 breaking changes 提醒
