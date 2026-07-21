@@ -9,9 +9,12 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/vector_match"
     api_keys: str = "dev-key"
 
-    embedding_base_url: str = "https://api.openai.com/v1"
+    # 阿里云百炼 OpenAI 兼容模式 endpoint(华北2-北京)
+    embedding_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
     embedding_api_key: str = ""
-    embedding_model: str = "BAAI/bge-m3"
+    embedding_model: str = "qwen3.7-text-embedding"
+    # 百炼同步 embedding 接口单次输入条数上限(v3/v4 为 10 条)
+    embedding_batch_size: int = 10
 
     rerank_base_url: str = ""
     rerank_api_key: str = ""

@@ -52,7 +52,7 @@ class EmbeddingClient:
 async def embed_in_batches(
     client: EmbeddingClient,
     texts: list[str],
-    batch_size: int = 64,
+    batch_size: int = 10,  # 百炼同步 embedding 接口单次最多 10 条输入
     concurrency: int = 4,
 ) -> list[list[float]]:
     semaphore = asyncio.Semaphore(concurrency)

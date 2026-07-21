@@ -38,7 +38,12 @@ async def process_batch(
 
     texts = [text for _, _, pairs, _ in items for _, text in pairs]
     try:
-        vectors = await embed_in_batches(embedding, texts, concurrency=settings.worker_concurrency)
+        vectors = await embed_in_batches(
+            embedding,
+            texts,
+            batch_size=settings.embedding_batch_size,
+            concurrency=settings.worker_concurrency,
+        )
     except EmbeddingError as exc:
         async with session_factory() as session:
             task_repo = TaskRepository(session)
