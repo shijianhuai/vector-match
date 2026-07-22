@@ -6,19 +6,21 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2Icon } from "lucide-react";
+import { ArrowRightIcon, Loader2Icon } from "lucide-react";
 import { useRegister } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AuthShell,
+  authErrorClass,
+  authFieldClass,
+  authFieldErrorClass,
+  authLabelClass,
+  authLinkClass,
+  authSubmitClass,
+} from "@/components/auth/auth-shell";
 
 const registerSchema = z
   .object({
@@ -71,102 +73,113 @@ function RegisterForm() {
   });
 
   return (
-    <div className="flex flex-1 items-center justify-center p-6">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-xl">注册</CardTitle>
-          <CardDescription>创建 Vector Match 账号</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={onSubmit} className="grid gap-4">
-            {register.isError && (
-              <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {register.error.message}
-              </p>
-            )}
-            <div className="grid gap-2">
-              <Label htmlFor="username">用户名</Label>
-              <Input
-                id="username"
-                placeholder="用户名"
-                autoComplete="username"
-                autoFocus
-                aria-invalid={Boolean(form.formState.errors.username)}
-                {...form.register("username")}
-              />
-              {form.formState.errors.username && (
-                <p className="text-xs text-destructive">
-                  {form.formState.errors.username.message}
-                </p>
-              )}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="email">邮箱（可选）</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="邮箱"
-                autoComplete="email"
-                aria-invalid={Boolean(form.formState.errors.email)}
-                {...form.register("email")}
-              />
-              {form.formState.errors.email && (
-                <p className="text-xs text-destructive">
-                  {form.formState.errors.email.message}
-                </p>
-              )}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="password">密码</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="至少 6 位"
-                autoComplete="new-password"
-                aria-invalid={Boolean(form.formState.errors.password)}
-                {...form.register("password")}
-              />
-              {form.formState.errors.password && (
-                <p className="text-xs text-destructive">
-                  {form.formState.errors.password.message}
-                </p>
-              )}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="confirmPassword">确认密码</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="再次输入密码"
-                autoComplete="new-password"
-                aria-invalid={Boolean(form.formState.errors.confirmPassword)}
-                {...form.register("confirmPassword")}
-              />
-              {form.formState.errors.confirmPassword && (
-                <p className="text-xs text-destructive">
-                  {form.formState.errors.confirmPassword.message}
-                </p>
-              )}
-            </div>
-            <Button type="submit" disabled={register.isPending}>
-              {register.isPending && (
-                <Loader2Icon className="animate-spin" />
-              )}
-              注册
-            </Button>
-          </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            已有账号？{" "}
-            <Link
-              href="/login"
-              className="font-medium text-primary underline-offset-4 hover:underline"
-            >
-              登录
-            </Link>
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+    <AuthShell
+      eyebrow="VECTOR MATCH · CONSOLE"
+      title="创建账号"
+      description="注册后即可建立知识库，推送短文本并开始检索。"
+      footer={
+        <>
+          已有账号？{" "}
+          <Link href="/login" className={authLinkClass}>
+            登录
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={onSubmit} className="grid gap-5">
+        {register.isError && (
+          <p className={authErrorClass}>{register.error.message}</p>
+        )}
+        <div className="grid gap-2">
+          <Label htmlFor="username" className={authLabelClass}>
+            用户名
+          </Label>
+          <Input
+            id="username"
+            placeholder="输入用户名"
+            autoComplete="username"
+            autoFocus
+            aria-invalid={Boolean(form.formState.errors.username)}
+            className={authFieldClass}
+            {...form.register("username")}
+          />
+          {form.formState.errors.username && (
+            <p className={authFieldErrorClass}>
+              {form.formState.errors.username.message}
+            </p>
+          )}
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="email" className={authLabelClass}>
+            邮箱（可选）
+          </Label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="name@example.com"
+            autoComplete="email"
+            aria-invalid={Boolean(form.formState.errors.email)}
+            className={authFieldClass}
+            {...form.register("email")}
+          />
+          {form.formState.errors.email && (
+            <p className={authFieldErrorClass}>
+              {form.formState.errors.email.message}
+            </p>
+          )}
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="password" className={authLabelClass}>
+            密码
+          </Label>
+          <Input
+            id="password"
+            type="password"
+            placeholder="至少 6 位"
+            autoComplete="new-password"
+            aria-invalid={Boolean(form.formState.errors.password)}
+            className={authFieldClass}
+            {...form.register("password")}
+          />
+          {form.formState.errors.password && (
+            <p className={authFieldErrorClass}>
+              {form.formState.errors.password.message}
+            </p>
+          )}
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="confirmPassword" className={authLabelClass}>
+            确认密码
+          </Label>
+          <Input
+            id="confirmPassword"
+            type="password"
+            placeholder="再次输入密码"
+            autoComplete="new-password"
+            aria-invalid={Boolean(form.formState.errors.confirmPassword)}
+            className={authFieldClass}
+            {...form.register("confirmPassword")}
+          />
+          {form.formState.errors.confirmPassword && (
+            <p className={authFieldErrorClass}>
+              {form.formState.errors.confirmPassword.message}
+            </p>
+          )}
+        </div>
+        <Button
+          type="submit"
+          disabled={register.isPending}
+          className={authSubmitClass}
+        >
+          {register.isPending ? (
+            <Loader2Icon className="animate-spin" />
+          ) : (
+            <ArrowRightIcon className="order-last transition-transform duration-200 group-hover/button:translate-x-0.5" />
+          )}
+          创建账号
+        </Button>
+      </form>
+    </AuthShell>
   );
 }
 
@@ -174,23 +187,19 @@ export default function RegisterPage() {
   return (
     <React.Suspense
       fallback={
-        <div className="flex flex-1 items-center justify-center p-6">
-          <Card className="w-full max-w-sm">
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-xl">注册</CardTitle>
-              <CardDescription>创建 Vector Match 账号</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4" aria-hidden>
-                <Skeleton className="h-14 w-full" />
-                <Skeleton className="h-14 w-full" />
-                <Skeleton className="h-14 w-full" />
-                <Skeleton className="h-14 w-full" />
-                <Skeleton className="h-9 w-full" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <AuthShell
+          eyebrow="VECTOR MATCH · CONSOLE"
+          title="创建账号"
+          description="注册后即可建立知识库，推送短文本并开始检索。"
+          footer={null}
+        >
+          <div className="grid gap-5" aria-hidden>
+            <Skeleton className="h-11 w-full bg-white/[0.06]" />
+            <Skeleton className="h-11 w-full bg-white/[0.06]" />
+            <Skeleton className="h-11 w-full bg-white/[0.06]" />
+            <Skeleton className="h-11 w-full bg-white/[0.06]" />
+          </div>
+        </AuthShell>
       }
     >
       <RegisterForm />

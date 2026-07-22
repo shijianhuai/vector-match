@@ -3,8 +3,9 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { DatabaseIcon, UsersIcon, WaypointsIcon } from "lucide-react";
+import { DatabaseIcon, UsersIcon } from "lucide-react";
 import { useMe } from "@/hooks/use-auth";
+import { BrandMark } from "@/components/brand-mark";
 import { UserMenu } from "@/components/user-menu";
 import { cn } from "@/lib/utils";
 
@@ -24,17 +25,17 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function BrandMark({ compact = false }: { compact?: boolean }) {
+function Brand({ compact = false }: { compact?: boolean }) {
   return (
     <Link
       href="/datasets"
       className="flex items-center gap-2.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-        <WaypointsIcon className="size-4" />
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border bg-card shadow-xs">
+        <BrandMark className="size-[18px]" />
       </span>
       {!compact && (
-        <span className="text-base font-semibold tracking-tight">
+        <span className="font-display text-[15px] font-semibold tracking-tight">
           Vector Match
         </span>
       )}
@@ -53,7 +54,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* 桌面端侧边栏 */}
       <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
         <div className="px-4 py-5">
-          <BrandMark />
+          <Brand />
         </div>
 
         <nav className="flex-1 space-y-1 px-3">
@@ -90,7 +91,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         {/* 移动端顶栏 */}
         <header className="sticky top-0 z-40 flex items-center gap-1 border-b bg-background/95 px-3 py-2 backdrop-blur md:hidden">
-          <BrandMark compact />
+          <Brand compact />
           <nav className="flex flex-1 items-center justify-center gap-1">
             {items.map((item) => {
               const active = isActive(pathname, item.href);

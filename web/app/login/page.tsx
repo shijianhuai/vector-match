@@ -6,19 +6,21 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2Icon } from "lucide-react";
+import { ArrowRightIcon, Loader2Icon } from "lucide-react";
 import { useLogin } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AuthShell,
+  authErrorClass,
+  authFieldClass,
+  authFieldErrorClass,
+  authLabelClass,
+  authLinkClass,
+  authSubmitClass,
+} from "@/components/auth/auth-shell";
 
 const loginSchema = z.object({
   username: z.string().trim().min(1, "请输入用户名"),
@@ -52,70 +54,71 @@ function LoginForm() {
   });
 
   return (
-    <div className="flex flex-1 items-center justify-center p-6">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-xl">登录</CardTitle>
-          <CardDescription>登录到 Vector Match 管理知识库</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={onSubmit} className="grid gap-4">
-            {login.isError && (
-              <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {login.error.message}
-              </p>
-            )}
-            <div className="grid gap-2">
-              <Label htmlFor="username">用户名</Label>
-              <Input
-                id="username"
-                placeholder="用户名"
-                autoComplete="username"
-                autoFocus
-                aria-invalid={Boolean(form.formState.errors.username)}
-                {...form.register("username")}
-              />
-              {form.formState.errors.username && (
-                <p className="text-xs text-destructive">
-                  {form.formState.errors.username.message}
-                </p>
-              )}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="password">密码</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="密码"
-                autoComplete="current-password"
-                aria-invalid={Boolean(form.formState.errors.password)}
-                {...form.register("password")}
-              />
-              {form.formState.errors.password && (
-                <p className="text-xs text-destructive">
-                  {form.formState.errors.password.message}
-                </p>
-              )}
-            </div>
-            <Button type="submit" disabled={login.isPending}>
-              {login.isPending && (
-                <Loader2Icon className="animate-spin" />
-              )}
-              登录
-            </Button>
-          </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            没有账号？{" "}
-            <Link
-              href="/register"
-              className="font-medium text-primary underline-offset-4 hover:underline"
-            >
-              注册
-            </Link>
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+    <AuthShell
+      eyebrow="VECTOR MATCH · CONSOLE"
+      title="登录"
+      description="登录以管理你的知识库与语义检索。"
+      footer={
+        <>
+          没有账号？{" "}
+          <Link href="/register" className={authLinkClass}>
+            创建账号
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={onSubmit} className="grid gap-5">
+        {login.isError && (
+          <p className={authErrorClass}>{login.error.message}</p>
+        )}
+        <div className="grid gap-2">
+          <Label htmlFor="username" className={authLabelClass}>
+            用户名
+          </Label>
+          <Input
+            id="username"
+            placeholder="输入用户名"
+            autoComplete="username"
+            autoFocus
+            aria-invalid={Boolean(form.formState.errors.username)}
+            className={authFieldClass}
+            {...form.register("username")}
+          />
+          {form.formState.errors.username && (
+            <p className={authFieldErrorClass}>
+              {form.formState.errors.username.message}
+            </p>
+          )}
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="password" className={authLabelClass}>
+            密码
+          </Label>
+          <Input
+            id="password"
+            type="password"
+            placeholder="输入密码"
+            autoComplete="current-password"
+            aria-invalid={Boolean(form.formState.errors.password)}
+            className={authFieldClass}
+            {...form.register("password")}
+          />
+          {form.formState.errors.password && (
+            <p className={authFieldErrorClass}>
+              {form.formState.errors.password.message}
+            </p>
+          )}
+        </div>
+        <Button type="submit" disabled={login.isPending} className={authSubmitClass}>
+          {login.isPending ? (
+            <Loader2Icon className="animate-spin" />
+          ) : (
+            <ArrowRightIcon className="order-last transition-transform duration-200 group-hover/button:translate-x-0.5" />
+          )}
+          进入控制台
+        </Button>
+      </form>
+    </AuthShell>
   );
 }
 
@@ -123,21 +126,18 @@ export default function LoginPage() {
   return (
     <React.Suspense
       fallback={
-        <div className="flex flex-1 items-center justify-center p-6">
-          <Card className="w-full max-w-sm">
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-xl">登录</CardTitle>
-              <CardDescription>登录到 Vector Match 管理知识库</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4" aria-hidden>
-                <Skeleton className="h-14 w-full" />
-                <Skeleton className="h-14 w-full" />
-                <Skeleton className="h-9 w-full" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <AuthShell
+          eyebrow="VECTOR MATCH · CONSOLE"
+          title="登录"
+          description="登录以管理你的知识库与语义检索。"
+          footer={null}
+        >
+          <div className="grid gap-5" aria-hidden>
+            <Skeleton className="h-11 w-full bg-white/[0.06]" />
+            <Skeleton className="h-11 w-full bg-white/[0.06]" />
+            <Skeleton className="h-11 w-full bg-white/[0.06]" />
+          </div>
+        </AuthShell>
       }
     >
       <LoginForm />
