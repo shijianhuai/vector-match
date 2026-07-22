@@ -28,9 +28,7 @@ class User(TimestampValidMixin, Base):
         Index("ix_users_email", "email", unique=True, postgresql_where=text("isvalid = 1")),
     )
 
-    id: Mapped[int] = mapped_column(
-        BigInteger, primary_key=True, autoincrement=True, comment="用户ID"
-    )
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True, comment="用户ID")
     username: Mapped[str] = mapped_column(String(64), comment="用户名（登录账号）")
     email: Mapped[str | None] = mapped_column(String(255), nullable=True, comment="邮箱")
     password_hash: Mapped[str] = mapped_column(String(255), comment="密码哈希")
@@ -52,19 +50,30 @@ class Collection(TimestampValidMixin, Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4, comment="集合ID")
     dataset_id: Mapped[uuid.UUID] = mapped_column(index=True, comment="所属知识库ID")
-    parent_id: Mapped[uuid.UUID | None] = mapped_column(
-        nullable=True, index=True, comment="父集合ID（空为根级）"
-    )
+    parent_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True, index=True, comment="父集合ID（空为根级）")
     name: Mapped[str] = mapped_column(String(256), comment="集合名称")
     type: Mapped[str] = mapped_column(String(16), comment="集合类型：folder目录/virtual虚拟集合")
 
 
 class DatasetData(TimestampValidMixin, Base):
     __tablename__ = "dataset_data"
+    __table_args__ = (
+        Index(
+            "ix_dataset_data_dataset_key",
+            "dataset_id",
+            "key_id",
+            unique=True,
+            postgresql_where=text("isvalid = 1 AND key_id IS NOT NULL"),
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4, comment="数据ID")
     dataset_id: Mapped[uuid.UUID] = mapped_column(index=True, comment="所属知识库ID")
     collection_id: Mapped[uuid.UUID] = mapped_column(index=True, comment="所属集合ID")
+    key_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True, comment="外部源主键")
+    source_updatetime: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, comment="外部源更新时间（仅作同步判定）"
+    )
     q: Mapped[str] = mapped_column(Text, comment="主文本/问题")
     a: Mapped[str | None] = mapped_column(Text, nullable=True, comment="补充文本/答案")
     full_text_tokens: Mapped[str] = mapped_column(Text, default="", comment="全文检索分词结果（tsvector）")
@@ -75,9 +84,7 @@ class DataIndex(TimestampValidMixin, Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4, comment="索引ID")
     data_id: Mapped[uuid.UUID] = mapped_column(index=True, comment="关联数据ID")
-    type: Mapped[str] = mapped_column(
-        String(16), default="custom", comment="索引类型：default默认/custom自定义"
-    )
+    type: Mapped[str] = mapped_column(String(16), default="custom", comment="索引类型：default默认/custom自定义")
     text: Mapped[str] = mapped_column(Text, comment="索引文本")
     vector = mapped_column(Vector(EMBEDDING_DIM), nullable=True, comment="向量（维度由EMBEDDING_DIM决定）")
 

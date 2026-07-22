@@ -15,6 +15,7 @@ class HitRow:
     dataset_id: uuid.UUID
     collection_id: uuid.UUID
     source_name: str
+    key_id: str | None
 
 
 class SearchRepository:
@@ -62,6 +63,7 @@ class SearchRepository:
                 DatasetData.a,
                 DatasetData.dataset_id,
                 DatasetData.collection_id,
+                DatasetData.key_id,
                 Collection.name.label("source_name"),
             )
             .join(Collection, Collection.id == DatasetData.collection_id)
@@ -76,6 +78,7 @@ class SearchRepository:
                 dataset_id=r.dataset_id,
                 collection_id=r.collection_id,
                 source_name=r.source_name,
+                key_id=r.key_id,
             )
             for r in rows
         ]

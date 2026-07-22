@@ -100,9 +100,13 @@ docker-compose.yml    # 仓库根目录，编排 postgres + app + worker
 | id | uuid | 主键 |
 | dataset_id | uuid | 所属库（冗余，便于按库检索） |
 | collection_id | uuid | 所属集合 |
+| key_id | varchar(128) 可空 | 外部源主键（如 fund_id/company_id），NULL=手动 push 数据 |
+| source_updatetime | timestamptz 可空 | 外部源更新时间，仅作同步判定元数据 |
 | q | text | 主要数据（如基金名称） |
 | a | text 可空 | 辅助数据（如基金代码/ID） |
 | full_text_tokens | text | jieba 分词结果，空格分隔；训练时由 worker 回写，建 GIN 索引 |
+
+约束：`(dataset_id, key_id)` 在 `isvalid = 1 AND key_id IS NOT NULL` 条件下唯一。
 
 ### data_indexes（多向量索引）
 
@@ -135,7 +139,10 @@ embedding 模型为**部署级配置**：一个实例一个模型，向量维度
 
 ### 推送数据
 
-`POST /api/core/dataset/data/pushData`，参数 `{collectionId, data: [{q, a?, indexes?}]}`，每批 ≤ 200 条。每条数据在一个事务内写入 `dataset_data` 行（此时 `full_text_tokens` 为空）+ 一条 `pending` 训练任务，接口立即返回 `{insertLen}`。
+`POST /api/core/dataset/data/pushData`，参数 `{collectionId, data: [{q, a?, keyId?, updatetime?, indexes?}]}`，每批 ≤ 200 条。`updatetime` 必须配合 `keyId` 使用；naive datetime 按 UTC 处理。每条数据在一个事务内写入 `dataset_data` 行（此时 `full_text_tokens` 为空）+ 一条 `pending` 训练任务，接口立即返回 `{insertLen, updateLen, skipLen}`。
+
+- 无 `keyId`：纯插入。
+- 有 `keyId`：按 `(dataset_id, key_id)` 查找有效行。不存在则插入；存在则比对 `q`、`a`、`indexes` 文本集合，内容完全相同则 skip（仅当 `updatetime` 变化时更新该时间戳），有变化则整行重建索引并产生训练任务。
 
 **训练完成前数据不可检索**：索引行不存在且 `full_text_tokens` 为空，两路召回都自然命中不到。
 
@@ -190,7 +197,7 @@ embedding 模型为**部署级配置**：一个实例一个模型，向量维度
 | 混合（不重排） | RRF 得分 | 不生效 |
 | 任意 + 重排 | rerank 得分 0~1 | 生效 |
 
-返回：`[{id, q, a, datasetId, collectionId, sourceName, score}]`（`sourceName` 取集合名）。
+返回：`[{id, q, a, datasetId, collectionId, sourceName, score, keyId?}]`（`sourceName` 取集合名，`keyId` 仅外部数据有值）。
 
 ## 6. API 一览
 
@@ -224,11 +231,12 @@ embedding 模型为**部署级配置**：一个实例一个模型，向量维度
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| POST | `/api/core/dataset/data/pushData` | `{collectionId, data: [...]}`，每批 ≤200 → `{insertLen}` |
+| POST | `/api/core/dataset/data/pushData` | `{collectionId, data: [{q, a?, keyId?, updatetime?, indexes?}]}`，每批 ≤200。keyId 用于外部源 upsert：内容无变化则 skip，有变化则 update；不带 keyId 走纯插入 → `{insertLen, updateLen, skipLen}` |
 | GET | `/api/core/dataset/data/list` | `collectionId, offset, pageSize, searchText` 分页 |
 | GET | `/api/core/dataset/data/detail?id=` | 含索引与训练状态 |
 | PUT | `/api/core/dataset/data/update` | `{dataId, q?, a?, indexes?}`，触发重建 |
 | DELETE | `/api/core/dataset/data/delete?id=` | 软删 |
+| DELETE | `/api/core/dataset/data/deleteByKey` | `{collectionId, keyIds: [...]}`（≤200）按外部主键软删，幂等，返回 `{deleteLen}` |
 
 ### 检索与其他
 

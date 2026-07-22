@@ -56,13 +56,17 @@ function SearchResultCard({ hit }: { hit: SearchHit }) {
               </p>
             )}
             <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-              <FileTextIcon className="size-3.5" />
+              <FileTextIcon className="size-3.5 shrink-0" />
               <span className="truncate">{hit.sourceName}</span>
+              <span className="shrink-0 text-muted-foreground/40">·</span>
+              <span className="shrink-0 font-mono">
+                外部 ID：{hit.keyId ?? "—"}
+              </span>
             </div>
           </div>
           <Badge
             variant="outline"
-            className={`shrink-0 ${scoreBadgeClass(hit.score)}`}
+            className={`shrink-0 font-mono tabular-nums ${scoreBadgeClass(hit.score)}`}
           >
             {hit.score.toFixed(3)}
           </Badge>
@@ -255,6 +259,9 @@ export function SearchPanel({ datasetId }: { datasetId: string }) {
             <p className="mt-4 text-sm text-muted-foreground">
               输入文本开始测试
             </p>
+            <p className="mt-1 text-xs text-muted-foreground/60">
+              ⌘ / Ctrl + Enter 提交
+            </p>
           </div>
         ) : search.isPending ? (
           <div className="space-y-4">
@@ -263,13 +270,17 @@ export function SearchPanel({ datasetId }: { datasetId: string }) {
           </div>
         ) : (
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground tabular-nums">
               命中 {results.length} 条 · 耗时 {duration} ms
             </p>
             {results.length === 0 ? (
-              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center">
+              <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-16 text-center">
+                <div className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                  <SearchIcon className="size-5" />
+                </div>
+                <p className="text-sm font-medium">没有命中结果</p>
                 <p className="text-sm text-muted-foreground">
-                  没有命中结果，试试调整参数
+                  试试降低相似度阈值，或换一种检索模式
                 </p>
               </div>
             ) : (

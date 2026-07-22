@@ -28,6 +28,13 @@ const editSchema = z.object({
 
 type EditFormValues = z.infer<typeof editSchema>;
 
+function formatSourceTime(value: string | null | undefined) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("zh-CN", { hour12: false });
+}
+
 interface DataEditDialogProps {
   collectionId: string;
   dataId: string | null;
@@ -107,6 +114,21 @@ export function DataEditDialog({
           </div>
         ) : (
           <form id="edit-data-form" onSubmit={onSubmit} className="space-y-4">
+            <div className="flex flex-wrap gap-x-6 gap-y-1 rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+              <span>
+                外部 ID：
+                <span className="font-mono text-foreground">
+                  {data?.keyId ?? "—"}
+                </span>
+              </span>
+              <span>
+                来源更新时间：
+                <span className="text-foreground">
+                  {formatSourceTime(data?.sourceUpdatetime)}
+                </span>
+              </span>
+            </div>
+
             <div className="grid gap-2">
               <Label htmlFor="edit-q">
                 主文本 <span className="text-destructive">*</span>

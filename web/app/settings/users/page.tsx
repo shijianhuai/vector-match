@@ -223,7 +223,7 @@ export default function UsersSettingsPage() {
           </div>
 
           <div className="mt-4 flex items-center justify-between text-sm">
-            <div className="text-muted-foreground">
+            <div className="text-muted-foreground tabular-nums">
               共 {total} 条
             </div>
             <div className="flex items-center gap-2">

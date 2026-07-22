@@ -172,20 +172,26 @@ export function DataBrowser({ datasetId, collectionId }: DataBrowserProps) {
         </div>
       ) : total === 0 ? (
         debouncedSearchText ? (
-          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
+          <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed py-16 text-center">
+            <div className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+              <SearchIcon className="size-5" />
+            </div>
             <p className="text-sm font-medium">未找到相关数据</p>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               未找到包含「{debouncedSearchText}」的数据
             </p>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
+          <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed py-16 text-center">
+            <div className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+              <PlusIcon className="size-5" />
+            </div>
             <p className="text-sm font-medium">暂无数据</p>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               点击右上角新增数据，或批量粘贴导入
             </p>
             {canEdit && (
-              <Button className="mt-4" onClick={() => setAddOpen(true)}>
+              <Button className="mt-1" onClick={() => setAddOpen(true)}>
                 <PlusIcon className="size-4" />
                 新增数据
               </Button>
@@ -200,9 +206,14 @@ export function DataBrowser({ datasetId, collectionId }: DataBrowserProps) {
               className="group relative flex items-start justify-between gap-4 px-3 py-3 even:bg-muted/50 hover:bg-muted/80"
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate font-medium text-foreground">
-                  {item.q}
-                </p>
+                <div className="flex items-baseline gap-2">
+                  <p className="truncate font-medium text-foreground">
+                    {item.q}
+                  </p>
+                  <span className="shrink-0 font-mono text-xs text-muted-foreground/70">
+                    外部 ID：{item.keyId ?? "—"}
+                  </span>
+                </div>
                 {item.a && (
                   <p className="mt-1 truncate text-sm text-muted-foreground">
                     {item.a}
@@ -229,7 +240,7 @@ export function DataBrowser({ datasetId, collectionId }: DataBrowserProps) {
                   )}
                 </Badge>
 
-                <div className="hidden items-center gap-1 group-hover:flex">
+                <div className="flex items-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
                   {canEdit && (
                     <>
                       <Button
@@ -275,7 +286,7 @@ export function DataBrowser({ datasetId, collectionId }: DataBrowserProps) {
             <span className="text-sm text-muted-foreground">条</span>
           </div>
 
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground tabular-nums">
             第 {currentPage} 页 / 共 {total} 条
           </p>
 

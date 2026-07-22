@@ -35,6 +35,7 @@ class SearchHit:
     collection_id: uuid.UUID
     source_name: str
     score: float
+    key_id: str | None
 
 
 def _dedupe_keep_best(raw: list[tuple[uuid.UUID, float]], limit: int) -> list[tuple[uuid.UUID, float]]:
@@ -114,6 +115,7 @@ class SearchService:
                 collection_id=r.collection_id,
                 source_name=r.source_name,
                 score=s,
+                key_id=r.key_id,
             )
             for i, s in scored
             if (r := rows.get(i)) is not None

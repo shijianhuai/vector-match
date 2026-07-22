@@ -35,8 +35,8 @@ async def client(api_app, db_session, auth_headers, superuser):
     repo = DataRepository(db_session)
     r1, r2 = await repo.create_many(
         [
-            {"dataset_id": ds.id, "collection_id": col.id, "q": "易方达蓝筹精选混合", "a": "005827"},
-            {"dataset_id": ds.id, "collection_id": col.id, "q": "中欧医疗健康混合", "a": "003095"},
+            {"dataset_id": ds.id, "collection_id": col.id, "q": "易方达蓝筹精选混合", "a": "005827", "key_id": "fund1"},
+            {"dataset_id": ds.id, "collection_id": col.id, "q": "中欧医疗健康混合", "a": "003095", "key_id": "fund2"},
         ]
     )
     i1 = await repo.add_index(r1.id, "易方达蓝筹精选混合", type="default")
@@ -68,6 +68,7 @@ async def test_search_embedding(client):
     assert body[0]["id"] == client.r1_id
     assert body[0]["sourceName"] == "基金集"
     assert body[0]["score"] > 0.99
+    assert body[0]["keyId"] == "fund1"
 
 
 async def test_search_fulltext(client):

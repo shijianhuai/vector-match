@@ -14,6 +14,8 @@ from vector_match.api.schemas import (
     DataItemResponse,
     DataListResponse,
     DataUpdateRequest,
+    DeleteByKeyRequest,
+    DeleteByKeyResponse,
     IdResponse,
     IndexResponse,
     PushDataRequest,
@@ -31,9 +33,18 @@ async def push_data(
     session: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    items = [PushItem(q=item.q, a=item.a, indexes=[idx.text for idx in item.indexes]) for item in req.data]
-    n = await DataService(session).push(req.collection_id, items, operator_id=user.id)
-    return PushDataResponse(insert_len=n)
+    items = [
+        PushItem(
+            q=item.q,
+            a=item.a,
+            key_id=item.key_id,
+            updatetime=item.updatetime,
+            indexes=[idx.text for idx in item.indexes],
+        )
+        for item in req.data
+    ]
+    insert_len, update_len, skip_len = await DataService(session).push(req.collection_id, items, operator_id=user.id)
+    return PushDataResponse(insert_len=insert_len, update_len=update_len, skip_len=skip_len)
 
 
 @router.get("/list", dependencies=[Depends(require_collection_access("viewer"))], response_model=DataListResponse)
@@ -54,6 +65,7 @@ async def list_data(
                 q=d.q,
                 a=d.a,
                 trained=d.id in trained,
+                key_id=d.key_id,
             )
             for d in items
         ],
@@ -71,6 +83,8 @@ async def data_detail(id: uuid.UUID, session: AsyncSession = Depends(get_db)):
         q=data.q,
         a=data.a,
         trained=trained,
+        key_id=data.key_id,
+        source_updatetime=data.source_updatetime,
         indexes=[IndexResponse(type=i.type, text=i.text) for i in indexes],
     )
 
@@ -94,3 +108,17 @@ async def delete_data(
 ):
     await DataService(session).delete(id, operator_id=user.id)
     return IdResponse(id=id)
+
+
+@router.delete(
+    "/deleteByKey",
+    dependencies=[Depends(require_collection_access("editor"))],
+    response_model=DeleteByKeyResponse,
+)
+async def delete_by_key(
+    req: DeleteByKeyRequest,
+    session: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    n = await DataService(session).delete_by_keys(req.collection_id, req.key_ids, operator_id=user.id)
+    return DeleteByKeyResponse(delete_len=n)

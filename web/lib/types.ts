@@ -51,15 +51,19 @@ export type DataItem = {
   q: string;
   a: string | null;
   trained: boolean;
+  keyId?: string | null;
 };
 
 export type DataDetail = DataItem & {
+  sourceUpdatetime?: string | null;
   indexes: DataIndex[];
 };
 
 export type PushDataItem = {
   q: string;
   a?: string;
+  keyId?: string;
+  updatetime?: string;
   indexes?: { text: string }[];
 };
 
@@ -70,6 +74,8 @@ export type PushDataRequest = {
 
 export type PushDataResponse = {
   insertLen: number;
+  updateLen: number;
+  skipLen: number;
 };
 
 export type IdResponse = {
@@ -101,4 +107,5 @@ export type SearchHit = {
   collectionId: string;
   sourceName: string;
   score: number;
+  keyId?: string | null;
 };

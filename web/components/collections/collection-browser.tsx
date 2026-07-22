@@ -316,7 +316,7 @@ export function CollectionBrowser({
           </div>
 
           <div className="flex items-center justify-between text-sm">
-            <div className="text-muted-foreground">
+            <div className="text-muted-foreground tabular-nums">
               第 {currentPage} 页 / 共 {total} 条
             </div>
             <div className="flex items-center gap-2">
@@ -482,18 +482,30 @@ function EmptyState({
   onCreate: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-lg border bg-card py-12 text-center">
-      <p className="text-sm font-medium text-muted-foreground">
+    <div className="flex flex-col items-center gap-3 rounded-lg border bg-card py-16 text-center">
+      <div className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
         {searchText ? (
-          <>
-            未找到与「{searchText}」相关的集合
-          </>
+          <SearchIcon className="size-5" />
         ) : (
-          <>暂无集合</>
+          <FolderIcon className="size-5" />
         )}
-      </p>
+      </div>
+      {searchText ? (
+        <p className="text-sm font-medium">
+          未找到与「{searchText}」相关的集合
+        </p>
+      ) : (
+        <>
+          <p className="text-sm font-medium">暂无集合</p>
+          <p className="text-sm text-muted-foreground">
+            {canEdit
+              ? "创建集合后，就可以向其中添加数据"
+              : "该知识库下还没有任何集合"}
+          </p>
+        </>
+      )}
       {!searchText && canEdit && (
-        <Button onClick={onCreate}>
+        <Button className="mt-1" onClick={onCreate}>
           <PlusIcon />
           新建集合
         </Button>

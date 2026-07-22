@@ -215,7 +215,7 @@ function DatasetCard({
           router.push(`/datasets/${dataset.id}`);
         }
       }}
-      className="group relative cursor-pointer gap-2 p-4 transition-all hover:-translate-y-0.5 hover:shadow-md hover:ring-foreground/20"
+      className="group relative cursor-pointer gap-2 p-4 transition-all duration-200 outline-none hover:-translate-y-0.5 hover:shadow-md hover:ring-foreground/20 focus-visible:ring-2 focus-visible:ring-ring"
     >
       <div className="absolute top-2 right-2" onClick={(e) => e.stopPropagation()}>
         <DropdownMenu>

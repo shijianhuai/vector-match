@@ -68,9 +68,9 @@ export default function DatasetLayout({
                   href={href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "relative -mb-px px-3 py-2 text-sm transition-colors",
+                    "relative -mb-px px-3 py-2 text-sm transition-colors duration-200",
                     active
-                      ? "font-medium text-foreground after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-foreground"
+                      ? "font-medium text-foreground after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-primary"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >

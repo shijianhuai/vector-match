@@ -1,7 +1,8 @@
 import uuid
+from datetime import UTC, datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic.alias_generators import to_camel
 
 Role = Literal["owner", "editor", "viewer"]
@@ -126,16 +127,42 @@ class IndexResponse(CamelModel):
 class PushDataItem(CamelModel):
     q: str = Field(min_length=1)
     a: str | None = None
+    key_id: str | None = Field(None, min_length=1, max_length=128)
+    updatetime: datetime | None = None
     indexes: list[IndexInput] = Field(default_factory=list, max_length=5)
+
+    @field_validator("updatetime")
+    @classmethod
+    def _naive_to_utc(cls, v: datetime | None) -> datetime | None:
+        if v is not None and v.tzinfo is None:
+            v = v.replace(tzinfo=UTC)
+        return v
+
+    @field_validator("updatetime")
+    @classmethod
+    def _updatetime_requires_key_id(cls, v: datetime | None, info) -> datetime | None:
+        if v is not None and info.data.get("key_id") is None:
+            raise ValueError("updatetime 必须配合 key_id 使用")
+        return v
 
 
 class PushDataRequest(CamelModel):
     collection_id: uuid.UUID
     data: list[PushDataItem] = Field(min_length=1, max_length=200)
 
+    @model_validator(mode="after")
+    def _no_duplicate_key_ids(self):
+        key_ids = [item.key_id for item in self.data if item.key_id]
+        dup = {k for k in key_ids if key_ids.count(k) > 1}
+        if dup:
+            raise ValueError(f"批内 keyId 重复: {sorted(dup)}")
+        return self
+
 
 class PushDataResponse(CamelModel):
     insert_len: int
+    update_len: int
+    skip_len: int
 
 
 class DataItemResponse(CamelModel):
@@ -145,6 +172,7 @@ class DataItemResponse(CamelModel):
     q: str
     a: str | None
     trained: bool
+    key_id: str | None
 
 
 class DataListResponse(CamelModel):
@@ -159,6 +187,8 @@ class DataDetailResponse(CamelModel):
     q: str
     a: str | None
     trained: bool
+    key_id: str | None
+    source_updatetime: datetime | None
     indexes: list[IndexResponse]
 
 
@@ -167,6 +197,15 @@ class DataUpdateRequest(CamelModel):
     q: str | None = Field(default=None, min_length=1)
     a: str | None = None
     indexes: list[IndexInput] | None = None
+
+
+class DeleteByKeyRequest(CamelModel):
+    collection_id: uuid.UUID
+    key_ids: list[str] = Field(min_length=1, max_length=200)
+
+
+class DeleteByKeyResponse(CamelModel):
+    delete_len: int
 
 
 class SearchRequest(CamelModel):
@@ -187,3 +226,4 @@ class SearchHitResponse(CamelModel):
     collection_id: uuid.UUID
     source_name: str
     score: float
+    key_id: str | None

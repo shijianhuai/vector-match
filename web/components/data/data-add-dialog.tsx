@@ -23,11 +23,23 @@ import { useQueryClient } from "@tanstack/react-query";
 import { dataApi } from "@/lib/api";
 import { dataKeys, usePushData } from "@/hooks/use-data";
 
-const singleSchema = z.object({
-  q: z.string().trim().min(1, "请输入主文本"),
-  a: z.string().trim().optional(),
-  indexes: z.array(z.object({ text: z.string() })).max(5),
-});
+const singleSchema = z
+  .object({
+    q: z.string().trim().min(1, "请输入主文本"),
+    a: z.string().trim().optional(),
+    keyId: z.string().trim().optional(),
+    updatetime: z.string().optional(),
+    indexes: z.array(z.object({ text: z.string() })).max(5),
+  })
+  .superRefine((values, ctx) => {
+    if (values.updatetime && !values.keyId) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["updatetime"],
+        message: "填写来源更新时间前请先填写外部 ID",
+      });
+    }
+  });
 
 type SingleFormValues = z.infer<typeof singleSchema>;
 
@@ -50,7 +62,7 @@ export function DataAddDialog({
 
   const form = useForm<SingleFormValues>({
     resolver: zodResolver(singleSchema),
-    defaultValues: { q: "", a: "", indexes: [] },
+    defaultValues: { q: "", a: "", keyId: "", updatetime: "", indexes: [] },
   });
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -77,7 +89,7 @@ export function DataAddDialog({
   const batchCount = parsedBatch.length;
 
   const resetAll = React.useCallback(() => {
-    form.reset({ q: "", a: "", indexes: [] });
+    form.reset({ q: "", a: "", keyId: "", updatetime: "", indexes: [] });
     setBatchText("");
     setMode("single");
   }, [form]);
@@ -101,6 +113,10 @@ export function DataAddDialog({
           {
             q: values.q,
             a: values.a || undefined,
+            keyId: values.keyId || undefined,
+            updatetime: values.updatetime
+              ? new Date(values.updatetime).toISOString()
+              : undefined,
             indexes: indexes.length ? indexes : undefined,
           },
         ],
@@ -187,6 +203,31 @@ export function DataAddDialog({
                   placeholder="例如答案或补充信息"
                   {...form.register("a")}
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-2">
+                  <Label htmlFor="add-key-id">外部 ID</Label>
+                  <Input
+                    id="add-key-id"
+                    className="font-mono"
+                    placeholder="如基金代码，可留空"
+                    {...form.register("keyId")}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="add-updatetime">来源更新时间</Label>
+                  <Input
+                    id="add-updatetime"
+                    type="datetime-local"
+                    {...form.register("updatetime")}
+                  />
+                  {form.formState.errors.updatetime && (
+                    <p className="text-xs text-destructive">
+                      {form.formState.errors.updatetime.message}
+                    </p>
+                  )}
+                </div>
               </div>
 
               <div className="grid gap-2">

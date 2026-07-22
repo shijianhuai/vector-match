@@ -103,7 +103,9 @@ async def test_members_crud(api_app, db_session, make_user):
         assert members[viewer.id] == "viewer"
 
         new_user = await _unique_user(make_user)
-        resp = await c.post(f"/api/core/dataset/{ds.id}/members", json={"username": new_user.username, "role": "editor"})
+        resp = await c.post(
+            f"/api/core/dataset/{ds.id}/members", json={"username": new_user.username, "role": "editor"}
+        )
         assert resp.status_code == 200
 
         resp = await c.patch(f"/api/core/dataset/{ds.id}/members/{new_user.id}", json={"role": "viewer"})
@@ -243,7 +245,7 @@ async def test_collection_data_access_by_collection_id(api_app, db_session, make
     async with await _client(api_app, editor) as c:
         resp = await c.post("/api/core/dataset/data/pushData", json={"collectionId": str(col.id), "data": [{"q": "x"}]})
         assert resp.status_code == 200
-        assert resp.json() == {"insertLen": 1}
+        assert resp.json() == {"insertLen": 1, "updateLen": 0, "skipLen": 0}
 
     async with await _client(api_app, viewer) as c:
         resp = await c.get("/api/core/dataset/data/list", params={"collectionId": str(col.id)})

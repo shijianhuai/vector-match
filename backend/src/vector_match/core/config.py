@@ -30,6 +30,7 @@ class Settings(BaseSettings):
 
     recall_limit: int = 60
     rerank_candidates: int = 30
+    max_custom_indexes: int = 5
 
 
 @lru_cache

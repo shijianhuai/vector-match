@@ -57,7 +57,7 @@ async def test_data_flow(client):
             ],
         },
     )
-    assert resp.status_code == 200 and resp.json() == {"insertLen": 2}
+    assert resp.status_code == 200 and resp.json() == {"insertLen": 2, "updateLen": 0, "skipLen": 0}
 
     resp = await client.get("/api/core/dataset/data/list", params={"collectionId": collection_id})
     body = resp.json()
@@ -87,3 +87,74 @@ async def test_push_to_missing_collection_404(client):
         json={"collectionId": str(uuid4()), "data": [{"q": "x"}]},
     )
     assert resp.status_code == 404
+
+
+async def test_push_updatetime_without_key_id_422(client):
+    dataset_id = await _make_dataset(client)
+    resp = await client.post(
+        "/api/core/dataset/collection/create",
+        json={"datasetId": dataset_id, "name": "c", "type": "virtual"},
+    )
+    collection_id = resp.json()["id"]
+    resp = await client.post(
+        "/api/core/dataset/data/pushData",
+        json={"collectionId": collection_id, "data": [{"q": "x", "updatetime": "2026-07-22T12:00:00Z"}]},
+    )
+    assert resp.status_code == 422
+
+
+async def test_push_duplicate_key_id_422(client):
+    dataset_id = await _make_dataset(client)
+    resp = await client.post(
+        "/api/core/dataset/collection/create",
+        json={"datasetId": dataset_id, "name": "c", "type": "virtual"},
+    )
+    collection_id = resp.json()["id"]
+    resp = await client.post(
+        "/api/core/dataset/data/pushData",
+        json={
+            "collectionId": collection_id,
+            "data": [{"q": "a", "keyId": "k1"}, {"q": "b", "keyId": "k1"}],
+        },
+    )
+    assert resp.status_code == 422
+
+
+async def test_delete_by_key(client):
+    dataset_id = await _make_dataset(client)
+    resp = await client.post(
+        "/api/core/dataset/collection/create",
+        json={"datasetId": dataset_id, "name": "c", "type": "virtual"},
+    )
+    collection_id = resp.json()["id"]
+    await client.post(
+        "/api/core/dataset/data/pushData",
+        json={"collectionId": collection_id, "data": [{"q": "a", "keyId": "k1"}, {"q": "b", "keyId": "k2"}]},
+    )
+    resp = await client.request(
+        "DELETE",
+        "/api/core/dataset/data/deleteByKey",
+        json={"collectionId": collection_id, "keyIds": ["k1", "missing"]},
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {"deleteLen": 1}
+    resp = await client.get("/api/core/dataset/data/list", params={"collectionId": collection_id})
+    assert resp.json()["total"] == 1
+
+
+async def test_push_with_key_id_and_list_detail(client):
+    dataset_id = await _make_dataset(client)
+    resp = await client.post(
+        "/api/core/dataset/collection/create",
+        json={"datasetId": dataset_id, "name": "c", "type": "virtual"},
+    )
+    collection_id = resp.json()["id"]
+    await client.post(
+        "/api/core/dataset/data/pushData",
+        json={"collectionId": collection_id, "data": [{"q": "a", "keyId": "k1"}]},
+    )
+    resp = await client.get("/api/core/dataset/data/list", params={"collectionId": collection_id})
+    data = resp.json()["list"][0]
+    assert data["keyId"] == "k1"
+    resp = await client.get("/api/core/dataset/data/detail", params={"id": data["id"]})
+    assert resp.json()["keyId"] == "k1"
