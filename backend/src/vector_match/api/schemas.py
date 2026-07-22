@@ -69,6 +69,12 @@ class UserResponse(CamelModel):
     email: str | None
     is_superuser: bool
     is_active: bool
+    create_time: datetime
+
+
+class UserSearchItem(CamelModel):
+    id: int
+    username: str
 
 
 class UserUpdateRequest(CamelModel):

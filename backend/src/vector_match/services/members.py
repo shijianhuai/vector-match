@@ -43,7 +43,9 @@ class MemberService:
         existing = await self.members.get_valid(dataset_id, user.id)
         if existing is not None:
             raise HTTPException(status_code=409, detail="member already exists")
-        return await self.members.create(dataset_id, user.id, role, creator_id=operator_id)
+        member = await self.members.create(dataset_id, user.id, role, creator_id=operator_id)
+        await self.session.commit()
+        return member
 
     async def update_role(
         self, dataset_id: uuid.UUID, user_id: int, role: str, operator_id: int | None = None

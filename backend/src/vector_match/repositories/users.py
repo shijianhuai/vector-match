@@ -65,6 +65,15 @@ class UserRepository:
         )
         return list((await self.session.execute(stmt)).scalars().all()), int(total or 0)
 
+    async def search_valid(self, keyword: str, limit: int) -> list[User]:
+        stmt = (
+            select(User)
+            .where(User.isvalid == 1, User.username.ilike(f"%{keyword}%"))
+            .order_by(User.create_time.desc())
+            .limit(limit)
+        )
+        return list((await self.session.execute(stmt)).scalars().all())
+
     async def update_fields(
         self,
         user: User,

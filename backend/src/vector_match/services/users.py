@@ -70,6 +70,9 @@ class UserService:
     async def list_users(self, offset: int, page_size: int) -> tuple[list[User], int]:
         return await self.users.list_page(offset, page_size)
 
+    async def search_users(self, keyword: str, limit: int) -> list[User]:
+        return await self.users.search_valid(keyword.lower().strip(), limit)
+
     async def update_user(
         self, actor: User, user_id: int, is_active: bool | None = None, is_superuser: bool | None = None
     ) -> User:

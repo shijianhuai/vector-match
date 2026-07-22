@@ -25,6 +25,7 @@ export type User = {
   id: number;
   username: string;
   email: string | null;
+  createTime: string;
   isActive: boolean;
   isSuperuser: boolean;
 };

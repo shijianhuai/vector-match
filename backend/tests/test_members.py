@@ -9,6 +9,8 @@ from vector_match.core.security import create_access_token
 from vector_match.repositories.members import DatasetMemberRepository
 from vector_match.services.collections import CollectionService
 from vector_match.services.datasets import DatasetService
+from vector_match.services.members import MemberService
+from vector_match.services.users import UserService
 
 pytestmark = requires_db
 
@@ -301,3 +303,55 @@ async def test_users_list_and_update(api_app, db_session, make_user):
     async with await _client(api_app, target) as c:
         resp = await c.post("/api/auth/login", json={"username": target.username, "password": "password"})
     assert resp.status_code == 401
+
+
+async def test_add_member_persists_across_sessions():
+    import uuid
+
+    from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+
+    from tests.conftest import TEST_DATABASE_URL
+
+    engine = create_async_engine(TEST_DATABASE_URL)
+    suffix = uuid.uuid4().hex[:8]
+
+    async with AsyncSession(engine, expire_on_commit=False) as setup_session:
+        owner = await UserService(setup_session).create_user(f"owner-{suffix}", "password")
+        ds = await DatasetService(setup_session).create(user=owner, name=f"ds-{suffix}", description="")
+        target = await UserService(setup_session).create_user(f"target-{suffix}", "password")
+        await setup_session.commit()
+
+    async with AsyncSession(engine, expire_on_commit=False) as service_session:
+        member = await MemberService(service_session).add_member(
+            ds.id, target.username, "editor", operator_id=owner.id
+        )
+        assert member.role == "editor"
+
+    async with AsyncSession(engine, expire_on_commit=False) as verify_session:
+        found = await DatasetMemberRepository(verify_session).get_valid(ds.id, target.id)
+        assert found is not None
+        assert found.role == "editor"
+
+    await engine.dispose()
+
+
+async def test_users_search_open_to_authenticated(api_app, db_session, make_user):
+    owner = await _unique_user(make_user)
+    target = await _unique_user(make_user)
+
+    async with await _client(api_app, owner) as c:
+        resp = await c.get("/api/users/search", params={"q": target.username})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert len(body) == 1
+    assert body[0]["id"] == target.id
+    assert body[0]["username"] == target.username
+
+    async with await _client(api_app, target) as c:
+        resp = await c.get("/api/users/search", params={"q": "nonexistent"})
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+    async with await _client(api_app, target) as c:
+        resp = await c.get("/api/users/search", params={"q": ""})
+    assert resp.status_code == 422

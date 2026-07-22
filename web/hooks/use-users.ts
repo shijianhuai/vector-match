@@ -8,12 +8,24 @@ export const userKeys = {
   all: ["users"] as const,
   list: (offset: number, pageSize: number) =>
     [...userKeys.all, "list", offset, pageSize] as const,
+  search: (q: string) => [...userKeys.all, "search", q] as const,
 };
 
 export function useUsers(offset: number, pageSize: number) {
   return useQuery({
     queryKey: userKeys.list(offset, pageSize),
     queryFn: () => userApi.list({ offset, pageSize }),
+  });
+}
+
+export function useUserSearch(q: string) {
+  const keyword = q.trim();
+  return useQuery({
+    queryKey: userKeys.search(keyword),
+    queryFn: () => userApi.search(keyword),
+    enabled: keyword.length > 0,
+    staleTime: 30 * 1000,
+    placeholderData: (previous) => previous,
   });
 }
 

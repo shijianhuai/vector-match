@@ -30,6 +30,13 @@ import type { User } from "@/lib/types";
 
 const PAGE_SIZE = 20;
 
+function formatCreateTime(value: string | null | undefined): string {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("zh-CN", { hour12: false });
+}
+
 function UserRow({ user, currentUserId }: { user: User; currentUserId: number }) {
   const update = useUpdateUser();
   const isSelf = user.id === currentUserId;
@@ -84,6 +91,9 @@ function UserRow({ user, currentUserId }: { user: User; currentUserId: number })
         </TableCell>
         <TableCell className="max-w-56 truncate">
           {user.email ?? "—"}
+        </TableCell>
+        <TableCell className="w-44 text-muted-foreground tabular-nums">
+          {formatCreateTime(user.createTime)}
         </TableCell>
         <TableCell>
           <Switch
@@ -199,6 +209,7 @@ export default function UsersSettingsPage() {
                 <TableRow>
                   <TableHead>用户名</TableHead>
                   <TableHead>邮箱</TableHead>
+                  <TableHead className="w-44">创建时间</TableHead>
                   <TableHead className="w-20">启用</TableHead>
                   <TableHead className="w-20">超管</TableHead>
                 </TableRow>
@@ -207,7 +218,7 @@ export default function UsersSettingsPage() {
                 {data?.list.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={4}
+                      colSpan={5}
                       className="py-12 text-center text-sm text-muted-foreground"
                     >
                       暂无用户

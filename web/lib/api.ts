@@ -195,9 +195,16 @@ export const searchApi = {
     }),
 };
 
+export type UserSearchResult = {
+  id: number;
+  username: string;
+};
+
 export const userApi = {
   list: (params: { offset: number; pageSize: number }) =>
     fetchJson<ListResponse<User>>(`/users/${buildQuery(params)}`),
+  search: (q: string) =>
+    fetchJson<UserSearchResult[]>(`/users/search${buildQuery({ q })}`),
   update: (
     userId: number,
     payload: { isActive?: boolean; isSuperuser?: boolean },
