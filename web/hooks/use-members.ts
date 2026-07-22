@@ -36,7 +36,7 @@ export function useAddMember(datasetId: string) {
 export function useUpdateMemberRole(datasetId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ userId, role }: { userId: string; role: Role }) =>
+    mutationFn: ({ userId, role }: { userId: number; role: Role }) =>
       memberApi.updateRole(datasetId, userId, { role }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: memberKeys.all(datasetId) });
@@ -51,7 +51,7 @@ export function useUpdateMemberRole(datasetId: string) {
 export function useRemoveMember(datasetId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (userId: string) => memberApi.remove(datasetId, userId),
+    mutationFn: (userId: number) => memberApi.remove(datasetId, userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: memberKeys.all(datasetId) });
       toast.success("成员已移除");

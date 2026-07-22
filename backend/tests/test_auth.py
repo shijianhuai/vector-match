@@ -132,7 +132,7 @@ async def test_me_invalid_sub_token(client_no_auth):
     from vector_match.core.config import get_settings
 
     settings = get_settings()
-    token = jwt.encode({"sub": "not-a-uuid"}, settings.jwt_secret, algorithm="HS256")
+    token = jwt.encode({"sub": "not-an-int"}, settings.jwt_secret, algorithm="HS256")
     resp = await client_no_auth.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert resp.status_code == 401
     assert "detail" in resp.json()
@@ -140,13 +140,14 @@ async def test_me_invalid_sub_token(client_no_auth):
 
 async def test_register_after_soft_delete(client_no_auth, db_session):
     import uuid
+
     from vector_match.services.users import UserService
 
     username = f"reuser-{uuid.uuid4().hex[:8]}"
     svc = UserService(db_session)
     user = await svc.create_user(username=username, password="secret123")
     await svc.users.soft_delete(user)
-    # db_session 在 fixture 中统一回滚，client 复用同一 session 即可看到 isvalid=0
+    # db_session 在 fixture 中统一回滚, client 复用同一 session 即可看到 isvalid=0
 
     resp = await client_no_auth.post(
         "/api/auth/register", json={"username": username, "password": "newsecret123"}

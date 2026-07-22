@@ -67,7 +67,7 @@ export function MemberPanel({ datasetId, myRole }: MemberPanelProps) {
 
   const [username, setUsername] = React.useState("");
   const [role, setRole] = React.useState<Role>("viewer");
-  const [removingUserId, setRemovingUserId] = React.useState<string | null>(null);
+  const [removingUserId, setRemovingUserId] = React.useState<number | null>(null);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,12 +84,12 @@ export function MemberPanel({ datasetId, myRole }: MemberPanelProps) {
     }
   };
 
-  const handleRoleChange = (userId: string, value: Role) => {
+  const handleRoleChange = (userId: number, value: Role) => {
     updateRole.mutate({ userId, role: value });
   };
 
   const handleRemove = async () => {
-    if (!removingUserId) return;
+    if (removingUserId === null) return;
     try {
       await removeMember.mutateAsync(removingUserId);
       setRemovingUserId(null);

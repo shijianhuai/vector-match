@@ -68,14 +68,22 @@ async def dataset_detail(
 
 
 @router.put("/update", dependencies=[Depends(require_dataset_access("editor"))], response_model=IdResponse)
-async def update_dataset(req: DatasetUpdateRequest, session: AsyncSession = Depends(get_db)):
-    ds = await DatasetService(session).update(req.id, name=req.name, description=req.description)
+async def update_dataset(
+    req: DatasetUpdateRequest,
+    session: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    ds = await DatasetService(session).update(req.id, name=req.name, description=req.description, operator_id=user.id)
     return IdResponse(id=ds.id)
 
 
 @router.delete("/delete", dependencies=[Depends(require_dataset_access("owner"))], response_model=IdResponse)
-async def delete_dataset(id: uuid.UUID, session: AsyncSession = Depends(get_db)):
-    await DatasetService(session).delete(id)
+async def delete_dataset(
+    id: uuid.UUID,
+    session: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    await DatasetService(session).delete(id, operator_id=user.id)
     return IdResponse(id=id)
 
 
@@ -102,8 +110,9 @@ async def add_member(
     dataset_id: uuid.UUID,
     req: DatasetMemberCreateRequest,
     session: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
-    member = await MemberService(session).add_member(dataset_id, req.username, req.role)
+    member = await MemberService(session).add_member(dataset_id, req.username, req.role, operator_id=user.id)
     return IdResponse(id=member.id)
 
 
@@ -112,11 +121,12 @@ async def add_member(
 )
 async def update_member(
     dataset_id: uuid.UUID,
-    user_id: uuid.UUID,
+    user_id: int,
     req: DatasetMemberUpdateRequest,
     session: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
-    member = await MemberService(session).update_role(dataset_id, user_id, req.role)
+    member = await MemberService(session).update_role(dataset_id, user_id, req.role, operator_id=user.id)
     return IdResponse(id=member.id)
 
 
@@ -125,8 +135,9 @@ async def update_member(
 )
 async def remove_member(
     dataset_id: uuid.UUID,
-    user_id: uuid.UUID,
+    user_id: int,
     session: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
-    await MemberService(session).remove_member(dataset_id, user_id)
+    await MemberService(session).remove_member(dataset_id, user_id, operator_id=user.id)
     return IdResponse(id=user_id)

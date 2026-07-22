@@ -30,7 +30,7 @@ import type { User } from "@/lib/types";
 
 const PAGE_SIZE = 20;
 
-function UserRow({ user, currentUserId }: { user: User; currentUserId: string }) {
+function UserRow({ user, currentUserId }: { user: User; currentUserId: number }) {
   const update = useUpdateUser();
   const isSelf = user.id === currentUserId;
   const [pending, setPending] = React.useState<{

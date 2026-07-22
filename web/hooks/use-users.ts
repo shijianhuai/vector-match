@@ -24,7 +24,7 @@ export function useUpdateUser() {
       userId,
       payload,
     }: {
-      userId: string;
+      userId: number;
       payload: { isActive?: boolean; isSuperuser?: boolean };
     }) => userApi.update(userId, payload),
     onSuccess: () => {

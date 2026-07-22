@@ -1,6 +1,4 @@
-import uuid
-
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,6 +17,8 @@ class UserRepository:
         password_hash: str,
         is_superuser: bool = False,
         is_active: bool = True,
+        creator_id: int | None = None,
+        updater_id: int | None = None,
     ) -> User:
         user = User(
             username=username,
@@ -26,6 +26,8 @@ class UserRepository:
             password_hash=password_hash,
             is_superuser=is_superuser,
             is_active=is_active,
+            creator_id=creator_id,
+            updater_id=updater_id,
         )
         self.session.add(user)
         try:
@@ -35,7 +37,7 @@ class UserRepository:
             raise ConflictError("username or email already exists") from exc
         return user
 
-    async def get_by_id(self, user_id: uuid.UUID) -> User | None:
+    async def get_by_id(self, user_id: int) -> User | None:
         stmt = select(User).where(User.id == user_id, User.isvalid == 1)
         return (await self.session.execute(stmt)).scalar_one_or_none()
 
@@ -63,13 +65,23 @@ class UserRepository:
         )
         return list((await self.session.execute(stmt)).scalars().all()), int(total or 0)
 
-    async def update_fields(self, user: User, is_active: bool | None = None, is_superuser: bool | None = None) -> None:
+    async def update_fields(
+        self,
+        user: User,
+        is_active: bool | None = None,
+        is_superuser: bool | None = None,
+        updater_id: int | None = None,
+    ) -> None:
         if is_active is not None:
             user.is_active = is_active
         if is_superuser is not None:
             user.is_superuser = is_superuser
+        if updater_id is not None:
+            user.updater_id = updater_id
         await self.session.flush()
 
-    async def soft_delete(self, user: User) -> None:
-        stmt = update(User).where(User.id == user.id).values(isvalid=0)
-        await self.session.execute(stmt)
+    async def soft_delete(self, user: User, updater_id: int | None = None) -> None:
+        user.isvalid = 0
+        if updater_id is not None:
+            user.updater_id = updater_id
+        await self.session.flush()

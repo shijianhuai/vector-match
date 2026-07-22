@@ -79,3 +79,20 @@ async def test_delete_data(db_session):
     await svc.delete(items[0].id)
     with pytest.raises(NotFoundError):
         await svc.detail(items[0].id)
+
+
+async def test_push_and_update_set_operator_ids(db_session):
+    from uuid import uuid4
+
+    user = await UserService(db_session).create_user(username=f"testuser-{uuid4().hex[:8]}", password="password")
+    ds = await DatasetService(db_session).create(user=user, name="d", description="")
+    col = await CollectionService(db_session).create(dataset_id=ds.id, parent_id=None, name="c", type="virtual")
+    svc = DataService(db_session)
+    await svc.push(col.id, [PushItem(q="x", a=None, indexes=["idx"])], operator_id=user.id)
+    items, _, _ = await svc.list_page(col.id, offset=0, page_size=10, search_text=None)
+    data_id = items[0].id
+    assert items[0].creator_id == user.id
+
+    await svc.update(data_id, q="y", operator_id=user.id)
+    data, _, _ = await svc.detail(data_id)
+    assert data.updater_id == user.id

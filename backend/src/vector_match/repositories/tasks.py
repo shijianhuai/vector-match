@@ -12,8 +12,15 @@ class TaskRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def enqueue_many(self, data_ids: list[uuid.UUID]) -> None:
-        self.session.add_all([TrainingTask(data_id=d) for d in data_ids])
+    async def enqueue_many(
+        self, data_ids: list[uuid.UUID], creator_id: int | None = None
+    ) -> None:
+        self.session.add_all(
+            [
+                TrainingTask(data_id=d, creator_id=creator_id, updater_id=creator_id)
+                for d in data_ids
+            ]
+        )
         await self.session.flush()
 
     async def claim(self, limit: int) -> list[TrainingTask]:
@@ -38,7 +45,9 @@ class TaskRepository:
         await self.session.execute(stmt)
 
     async def mark_failed(self, task_id: uuid.UUID, reason: str) -> None:
-        stmt = update(TrainingTask).where(TrainingTask.id == task_id).values(status="error", last_error=reason[:500])
+        stmt = update(TrainingTask).where(TrainingTask.id == task_id).values(
+            status="error", last_error=reason[:500]
+        )
         await self.session.execute(stmt)
 
     async def schedule_retry(self, task_id: uuid.UUID, error: str, max_attempts: int) -> None:

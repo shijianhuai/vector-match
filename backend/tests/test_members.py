@@ -97,7 +97,7 @@ async def test_members_crud(api_app, db_session, make_user):
     async with await _client(api_app, owner) as c:
         resp = await c.get(f"/api/core/dataset/{ds.id}/members")
         assert resp.status_code == 200
-        members = {uuid.UUID(m["userId"]): m["role"] for m in resp.json()}
+        members = {int(m["userId"]): m["role"] for m in resp.json()}
         assert members[owner.id] == "owner"
         assert members[editor.id] == "editor"
         assert members[viewer.id] == "viewer"
@@ -113,7 +113,7 @@ async def test_members_crud(api_app, db_session, make_user):
         assert resp.status_code == 200
 
         resp = await c.get(f"/api/core/dataset/{ds.id}/members")
-        assert new_user.id not in {uuid.UUID(m["userId"]) for m in resp.json()}
+        assert new_user.id not in {int(m["userId"]) for m in resp.json()}
 
 
 async def test_last_owner_remove_protected(api_app, db_session, make_user):
@@ -289,7 +289,7 @@ async def test_users_list_and_update(api_app, db_session, make_user):
         resp = await c.get("/api/users/", params={"offset": 0, "pageSize": 100})
     assert resp.status_code == 200
     body = resp.json()
-    assert any(u["id"] == str(target.id) for u in body["list"])
+    assert any(u["id"] == target.id for u in body["list"])
 
     async with await _client(api_app, admin) as c:
         resp = await c.patch(f"/api/users/{target.id}", json={"isActive": False})

@@ -10,7 +10,13 @@ class DataRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def create_many(self, rows: list[dict]) -> list[DatasetData]:
+    async def create_many(
+        self, rows: list[dict], creator_id: int | None = None
+    ) -> list[DatasetData]:
+        if creator_id is not None:
+            for row in rows:
+                row.setdefault("creator_id", creator_id)
+                row.setdefault("updater_id", creator_id)
         objs = [DatasetData(**row) for row in rows]
         self.session.add_all(objs)
         await self.session.flush()
@@ -26,7 +32,9 @@ class DataRepository:
         conditions = [DatasetData.collection_id == collection_id, DatasetData.isvalid == 1]
         if search_text:
             conditions.append(DatasetData.q.ilike(f"%{search_text}%"))
-        total = await self.session.scalar(select(func.count()).select_from(DatasetData).where(*conditions))
+        total = await self.session.scalar(
+            select(func.count()).select_from(DatasetData).where(*conditions)
+        )
         stmt = (
             select(DatasetData)
             .where(*conditions)
@@ -45,10 +53,18 @@ class DataRepository:
     async def list_by_collections(self, collection_ids: list[uuid.UUID]) -> list[DatasetData]:
         if not collection_ids:
             return []
-        stmt = select(DatasetData).where(DatasetData.collection_id.in_(collection_ids), DatasetData.isvalid == 1)
+        stmt = select(DatasetData).where(
+            DatasetData.collection_id.in_(collection_ids), DatasetData.isvalid == 1
+        )
         return list((await self.session.execute(stmt)).scalars().all())
 
-    async def update_fields(self, data_id: uuid.UUID, q: str | None = None, a: str | None = None) -> None:
+    async def update_fields(
+        self,
+        data_id: uuid.UUID,
+        q: str | None = None,
+        a: str | None = None,
+        updater_id: int | None = None,
+    ) -> None:
         obj = await self.get(data_id)
         if obj is None:
             return
@@ -56,20 +72,30 @@ class DataRepository:
             obj.q = q
         if a is not None:
             obj.a = a
+        if updater_id is not None:
+            obj.updater_id = updater_id
         await self.session.flush()
 
     async def set_full_text_tokens(self, data_id: uuid.UUID, tokens: str) -> None:
         stmt = update(DatasetData).where(DatasetData.id == data_id).values(full_text_tokens=tokens)
         await self.session.execute(stmt)
 
-    async def soft_delete_many(self, data_ids: list[uuid.UUID]) -> None:
+    async def soft_delete_many(
+        self, data_ids: list[uuid.UUID], updater_id: int | None = None
+    ) -> None:
         if not data_ids:
             return
-        stmt = update(DatasetData).where(DatasetData.id.in_(data_ids)).values(isvalid=0)
+        stmt = update(DatasetData).where(DatasetData.id.in_(data_ids)).values(
+            isvalid=0, updater_id=updater_id
+        )
         await self.session.execute(stmt)
 
-    async def add_index(self, data_id: uuid.UUID, text: str, type: str = "custom") -> DataIndex:
-        idx = DataIndex(data_id=data_id, text=text, type=type)
+    async def add_index(
+        self, data_id: uuid.UUID, text: str, type: str = "custom", creator_id: int | None = None
+    ) -> DataIndex:
+        idx = DataIndex(
+            data_id=data_id, text=text, type=type, creator_id=creator_id, updater_id=creator_id
+        )
         self.session.add(idx)
         await self.session.flush()
         return idx

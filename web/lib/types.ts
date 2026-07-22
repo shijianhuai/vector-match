@@ -1,5 +1,5 @@
 export type AuthUser = {
-  id: string;
+  id: number;
   username: string;
   email: string | null;
   isSuperuser: boolean;
@@ -16,13 +16,13 @@ export type Dataset = {
 };
 
 export type DatasetMember = {
-  userId: string;
+  userId: number;
   username: string;
   role: Role;
 };
 
 export type User = {
-  id: string;
+  id: number;
   username: string;
   email: string | null;
   isActive: boolean;

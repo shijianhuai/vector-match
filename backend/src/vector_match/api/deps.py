@@ -197,11 +197,11 @@ async def get_current_user(
     if not user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token")
     try:
-        user_id_uuid = uuid.UUID(user_id)
+        user_id_int = int(user_id)
     except (ValueError, TypeError):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token") from None
     repo = UserRepository(session)
-    user = await repo.get_by_id(user_id_uuid)
+    user = await repo.get_by_id(user_id_int)
     if user is None or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="user inactive or not found")
     return user

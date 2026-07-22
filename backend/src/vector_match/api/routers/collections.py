@@ -17,15 +17,24 @@ from vector_match.api.schemas import (
     CollectionUpdateRequest,
     IdResponse,
 )
+from vector_match.db.models import User
 from vector_match.services.collections import CollectionService
 
 router = APIRouter(prefix="/api/core/dataset/collection", dependencies=[Depends(get_current_user)])
 
 
 @router.post("/create", dependencies=[Depends(require_dataset_access("editor"))], response_model=IdResponse)
-async def create_collection(req: CollectionCreateRequest, session: AsyncSession = Depends(get_db)):
+async def create_collection(
+    req: CollectionCreateRequest,
+    session: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     col = await CollectionService(session).create(
-        dataset_id=req.dataset_id, parent_id=req.parent_id, name=req.name, type=req.type
+        dataset_id=req.dataset_id,
+        parent_id=req.parent_id,
+        name=req.name,
+        type=req.type,
+        operator_id=user.id,
     )
     return IdResponse(id=col.id)
 
@@ -49,12 +58,20 @@ async def collection_detail(id: uuid.UUID, session: AsyncSession = Depends(get_d
 
 
 @router.put("/update", dependencies=[Depends(require_collection_access("editor"))], response_model=IdResponse)
-async def update_collection(req: CollectionUpdateRequest, session: AsyncSession = Depends(get_db)):
-    col = await CollectionService(session).update(req.id, name=req.name)
+async def update_collection(
+    req: CollectionUpdateRequest,
+    session: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    col = await CollectionService(session).update(req.id, name=req.name, operator_id=user.id)
     return IdResponse(id=col.id)
 
 
 @router.delete("/delete", dependencies=[Depends(require_collection_access("editor"))], response_model=IdResponse)
-async def delete_collections(req: CollectionDeleteRequest, session: AsyncSession = Depends(get_db)):
-    await CollectionService(session).delete(req.collection_ids)
+async def delete_collections(
+    req: CollectionDeleteRequest,
+    session: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    await CollectionService(session).delete(req.collection_ids, operator_id=user.id)
     return IdResponse(id=req.collection_ids[0])

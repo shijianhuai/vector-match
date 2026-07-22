@@ -31,7 +31,7 @@ class DatasetResponse(CamelModel):
 
 
 class IdResponse(CamelModel):
-    id: uuid.UUID
+    id: uuid.UUID | int
 
 
 class DatasetMemberCreateRequest(CamelModel):
@@ -46,7 +46,7 @@ class DatasetMemberUpdateRequest(CamelModel):
 class DatasetMemberResponse(CamelModel):
     id: uuid.UUID
     dataset_id: uuid.UUID
-    user_id: uuid.UUID
+    user_id: int
     username: str
     role: Role
 
@@ -63,7 +63,7 @@ class LoginRequest(CamelModel):
 
 
 class UserResponse(CamelModel):
-    id: uuid.UUID
+    id: int
     username: str
     email: str | None
     is_superuser: bool

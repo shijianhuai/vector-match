@@ -31,7 +31,9 @@ class MemberService:
         user_map = {u.id: u for u in (await self.session.execute(stmt)).scalars().all()}
         return [(r, user_map[r.user_id]) for r in rows if r.user_id in user_map]
 
-    async def add_member(self, dataset_id: uuid.UUID, username: str, role: str) -> DatasetMember:
+    async def add_member(
+        self, dataset_id: uuid.UUID, username: str, role: str, operator_id: int | None = None
+    ) -> DatasetMember:
         if role not in VALID_ROLES:
             raise HTTPException(status_code=422, detail=f"role must be one of {VALID_ROLES}")
         username = username.lower().strip()
@@ -41,9 +43,11 @@ class MemberService:
         existing = await self.members.get_valid(dataset_id, user.id)
         if existing is not None:
             raise HTTPException(status_code=409, detail="member already exists")
-        return await self.members.create(dataset_id, user.id, role)
+        return await self.members.create(dataset_id, user.id, role, creator_id=operator_id)
 
-    async def update_role(self, dataset_id: uuid.UUID, user_id: uuid.UUID, role: str) -> DatasetMember:
+    async def update_role(
+        self, dataset_id: uuid.UUID, user_id: int, role: str, operator_id: int | None = None
+    ) -> DatasetMember:
         if role not in VALID_ROLES:
             raise HTTPException(status_code=422, detail=f"role must be one of {VALID_ROLES}")
         member = await self.members.get_valid(dataset_id, user_id)
@@ -53,17 +57,17 @@ class MemberService:
             return member
         if member.role == "owner" and role != "owner":
             await self._ensure_not_last_owner(dataset_id)
-        await self.members.update_role(member, role)
+        await self.members.update_role(member, role, updater_id=operator_id)
         await self.session.commit()
         return member
 
-    async def remove_member(self, dataset_id: uuid.UUID, user_id: uuid.UUID) -> None:
+    async def remove_member(self, dataset_id: uuid.UUID, user_id: int, operator_id: int | None = None) -> None:
         member = await self.members.get_valid(dataset_id, user_id)
         if member is None:
             raise HTTPException(status_code=404, detail="member not found")
         if member.role == "owner":
             await self._ensure_not_last_owner(dataset_id)
-        await self.members.soft_delete(member)
+        await self.members.soft_delete(member, updater_id=operator_id)
         await self.session.commit()
 
     async def _ensure_not_last_owner(self, dataset_id: uuid.UUID) -> None:
@@ -73,6 +77,6 @@ class MemberService:
         if owner_count <= 1:
             raise HTTPException(status_code=422, detail="cannot remove or downgrade the last owner")
 
-    async def get_member_role(self, dataset_id: uuid.UUID, user_id: uuid.UUID) -> str | None:
+    async def get_member_role(self, dataset_id: uuid.UUID, user_id: int) -> str | None:
         member = await self.members.get_valid(dataset_id, user_id)
         return member.role if member else None

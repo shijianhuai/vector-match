@@ -1,5 +1,3 @@
-import uuid
-
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -73,14 +71,14 @@ class UserService:
         return await self.users.list_page(offset, page_size)
 
     async def update_user(
-        self, actor: User, user_id: uuid.UUID, is_active: bool | None = None, is_superuser: bool | None = None
+        self, actor: User, user_id: int, is_active: bool | None = None, is_superuser: bool | None = None
     ) -> User:
         if actor.id == user_id:
             raise HTTPException(status_code=422, detail="cannot modify yourself")
         user = await self.users.get_by_id(user_id)
         if user is None:
             raise HTTPException(status_code=404, detail="user not found")
-        await self.users.update_fields(user, is_active=is_active, is_superuser=is_superuser)
+        await self.users.update_fields(user, is_active=is_active, is_superuser=is_superuser, updater_id=actor.id)
         await self.session.commit()
         return user
 
@@ -100,7 +98,7 @@ class UserService:
         await self.session.commit()
         await self.backfill_owners(admin.id)
 
-    async def backfill_owners(self, admin_user_id: uuid.UUID) -> None:
+    async def backfill_owners(self, admin_user_id: int) -> None:
         stmt = select(Dataset).where(Dataset.isvalid == 1)
         datasets = list((await self.session.execute(stmt)).scalars().all())
         for ds in datasets:

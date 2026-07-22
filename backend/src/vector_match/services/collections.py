@@ -20,14 +20,18 @@ class CollectionService:
         self.data = DataRepository(session)
         self.tasks = TaskRepository(session)
 
-    async def create(self, dataset_id: uuid.UUID, parent_id: uuid.UUID | None, name: str, type: str) -> Collection:
+    async def create(
+        self, dataset_id: uuid.UUID, parent_id: uuid.UUID | None, name: str, type: str, operator_id: int | None = None
+    ) -> Collection:
         if type not in VALID_TYPES:
             raise ValidationError(f"type 必须是 {VALID_TYPES} 之一")
         if await self.datasets.get(dataset_id) is None:
             raise NotFoundError("dataset not found")
         if parent_id is not None and await self.collections.get(parent_id) is None:
             raise NotFoundError("parent collection not found")
-        col = await self.collections.create(dataset_id=dataset_id, parent_id=parent_id, name=name, type=type)
+        col = await self.collections.create(
+            dataset_id=dataset_id, parent_id=parent_id, name=name, type=type, creator_id=operator_id
+        )
         await self.session.commit()
         return col
 
@@ -40,21 +44,21 @@ class CollectionService:
             raise NotFoundError("collection not found")
         return col
 
-    async def update(self, collection_id: uuid.UUID, name: str | None = None) -> Collection:
-        col = await self.collections.update(collection_id, name=name)
+    async def update(self, collection_id: uuid.UUID, name: str | None = None, operator_id: int | None = None) -> Collection:
+        col = await self.collections.update(collection_id, name=name, updater_id=operator_id)
         if col is None:
             raise NotFoundError("collection not found")
         await self.session.commit()
         return col
 
-    async def delete(self, collection_ids: list[uuid.UUID]) -> None:
+    async def delete(self, collection_ids: list[uuid.UUID], operator_id: int | None = None) -> None:
         all_ids = await self._collect_with_children(collection_ids)
         rows = await self.data.list_by_collections(all_ids)
         data_ids = [r.id for r in rows]
         await self.data.invalidate_indexes_for_data(data_ids)
-        await self.data.soft_delete_many(data_ids)
+        await self.data.soft_delete_many(data_ids, updater_id=operator_id)
         await self.tasks.fail_pending_for_data(data_ids)
-        await self.collections.soft_delete_many(all_ids)
+        await self.collections.soft_delete_many(all_ids, updater_id=operator_id)
         await self.session.commit()
 
     async def _collect_with_children(self, collection_ids: list[uuid.UUID]) -> list[uuid.UUID]:

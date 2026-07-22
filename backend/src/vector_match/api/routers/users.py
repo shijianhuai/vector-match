@@ -1,5 +1,3 @@
-import uuid
-
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,7 +21,7 @@ async def list_users(
 
 @router.patch("/{user_id}", response_model=UserResponse)
 async def update_user(
-    user_id: uuid.UUID,
+    user_id: int,
     req: UserUpdateRequest,
     session: AsyncSession = Depends(get_db),
     actor: User = Depends(get_current_user),

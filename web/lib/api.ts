@@ -199,7 +199,7 @@ export const userApi = {
   list: (params: { offset: number; pageSize: number }) =>
     fetchJson<ListResponse<User>>(`/users/${buildQuery(params)}`),
   update: (
-    userId: string,
+    userId: number,
     payload: { isActive?: boolean; isSuperuser?: boolean },
   ) =>
     fetchJson<void>(`/users/${encodeURIComponent(userId)}`, {
@@ -226,7 +226,7 @@ export const memberApi = {
     ),
   updateRole: (
     datasetId: string,
-    userId: string,
+    userId: number,
     payload: { role: Role },
   ) =>
     fetchJson<void>(
@@ -236,7 +236,7 @@ export const memberApi = {
         body: JSON.stringify(payload),
       },
     ),
-  remove: (datasetId: string, userId: string) =>
+  remove: (datasetId: string, userId: number) =>
     fetchJson<void>(
       `/core/dataset/${encodeURIComponent(datasetId)}/members/${encodeURIComponent(userId)}`,
       {
