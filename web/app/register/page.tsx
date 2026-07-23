@@ -194,10 +194,16 @@ export default function RegisterPage() {
           footer={null}
         >
           <div className="grid gap-5" aria-hidden>
-            <Skeleton className="h-11 w-full bg-white/[0.06]" />
-            <Skeleton className="h-11 w-full bg-white/[0.06]" />
-            <Skeleton className="h-11 w-full bg-white/[0.06]" />
-            <Skeleton className="h-11 w-full bg-white/[0.06]" />
+            {[64, 96, 48, 80].map((labelWidth, i) => (
+              <div key={i} className="grid gap-2">
+                <Skeleton
+                  className="h-3.5 bg-[#EEEAE2]"
+                  style={{ width: labelWidth }}
+                />
+                <Skeleton className="h-11 w-full bg-[#F4F1EA]" />
+              </div>
+            ))}
+            <Skeleton className="mt-1 h-11 w-full bg-[#E7E3D9]" />
           </div>
         </AuthShell>
       }

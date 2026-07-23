@@ -70,7 +70,7 @@ export default function DatasetLayout({
                   className={cn(
                     "relative -mb-px px-3 py-2 text-sm transition-colors duration-200",
                     active
-                      ? "font-medium text-foreground after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-primary"
+                      ? "font-medium text-foreground after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-[#D9552C]"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >

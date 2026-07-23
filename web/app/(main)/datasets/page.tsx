@@ -215,7 +215,7 @@ function DatasetCard({
           router.push(`/datasets/${dataset.id}`);
         }
       }}
-      className="group relative cursor-pointer gap-2 p-4 transition-all duration-200 outline-none hover:-translate-y-0.5 hover:shadow-md hover:ring-foreground/20 focus-visible:ring-2 focus-visible:ring-ring"
+      className="group relative cursor-pointer gap-2 p-4 transition-all duration-200 outline-none hover:-translate-y-0.5 hover:ring-foreground/25 focus-visible:ring-2 focus-visible:ring-ring"
     >
       <div className="absolute top-2 right-2" onClick={(e) => e.stopPropagation()}>
         <DropdownMenu>
@@ -286,8 +286,15 @@ export default function DatasetsPage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl px-6 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">知识库</h1>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.26em] text-muted-foreground">
+            Datasets
+          </p>
+          <h1 className="mt-2 font-display text-[28px] font-semibold tracking-[-0.02em]">
+            知识库
+          </h1>
+        </div>
         <div className="flex items-center gap-2">
           <div className="relative">
             <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />

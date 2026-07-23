@@ -226,7 +226,7 @@ export function DataBrowser({ datasetId, collectionId }: DataBrowserProps) {
                   variant="outline"
                   className={
                     item.trained
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400"
+                      ? "border-[#A3D9A5] bg-[#E6F7E6] text-[#2D6A2D]"
                       : "border-border bg-muted text-muted-foreground"
                   }
                 >

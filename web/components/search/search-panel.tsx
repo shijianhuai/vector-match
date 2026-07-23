@@ -35,10 +35,10 @@ const SEARCH_MODES: { value: SearchMode; label: string; description: string }[] 
 
 function scoreBadgeClass(score: number) {
   if (score >= 0.8) {
-    return "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800";
+    return "border-[#E5C4B5] bg-[#F9E9E1] text-[#B4542E]";
   }
   if (score >= 0.5) {
-    return "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800";
+    return "border-[#E8E5DE] bg-[#F5F2EC] text-[#57534A]";
   }
   return "bg-muted text-muted-foreground";
 }

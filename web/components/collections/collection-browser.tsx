@@ -347,7 +347,7 @@ export function CollectionBrowser({
 
       {canEdit && selectedIds.size > 0 && (
         <div className="fixed bottom-6 left-1/2 z-40 w-full max-w-md -translate-x-1/2 px-4">
-          <Card className="flex items-center justify-between gap-4 p-4 shadow-lg">
+          <Card className="flex items-center justify-between gap-4 p-4 shadow-[0_20px_50px_-24px_rgba(23,21,18,0.08)]">
             <span className="text-sm">
               已选 <strong>{selectedIds.size}</strong> 项
             </span>

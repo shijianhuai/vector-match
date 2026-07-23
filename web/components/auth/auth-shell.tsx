@@ -1,15 +1,73 @@
 import * as React from "react";
 import { BrandMark } from "@/components/brand-mark";
-import { SpaceCanvas } from "@/components/auth/space-canvas";
+
+const authEnterCss = `
+@keyframes auth-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.auth-enter {
+  animation: auth-enter 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-enter { animation: none; }
+}
+`;
 
 function Wordmark() {
   return (
     <span className="flex items-center gap-2.5">
-      <BrandMark className="size-6" />
-      <span className="font-display text-lg font-semibold tracking-tight text-[#EDF1FA]">
+      <BrandMark className="size-5" />
+      <span className="font-mono text-[11px] font-medium uppercase tracking-[0.28em] text-[#171512]">
         Vector Match
       </span>
     </span>
+  );
+}
+
+const FLOW_STEPS = [
+  { index: "01", term: "PUSH", text: "批量推送短文本语料" },
+  { index: "02", term: "TRAIN", text: "异步训练向量索引" },
+  { index: "03", term: "SEARCH", text: "语义 / 全文 / 混合检索" },
+] as const;
+
+function EditorialIntro() {
+  return (
+    <div className="max-w-xl">
+      <p className="flex items-center gap-2.5 font-mono text-[10px] uppercase tracking-[0.26em] text-[#8A8578]">
+        <span className="inline-block size-2 bg-[#D9552C]" aria-hidden />
+        Short-text retrieval console
+      </p>
+      <h1 className="mt-7 font-display text-[clamp(2.6rem,5.2vw,4.25rem)] leading-[1.05] font-semibold tracking-[-0.03em] text-[#141310]">
+        信息很多<span className="text-[#D9552C]">,</span>
+        <br />
+        对的那条很少。
+      </h1>
+      <p className="mt-6 max-w-md text-[15px] leading-relaxed text-[#6F6A5E]">
+        Vector Match 为短文本提供语义、全文与混合检索：推送语料，训练索引，
+        把最相近的几条找回来。
+      </p>
+
+      <div className="mt-10 hidden max-w-md -rotate-[1.2deg] rounded-xl border border-[#E8E5DE] bg-white px-6 py-2 shadow-[0_24px_60px_-32px_rgba(23,21,18,0.045)] lg:block">
+        {FLOW_STEPS.map((step, i) => (
+          <div
+            key={step.index}
+            className={
+              "flex items-baseline gap-4 py-3.5" +
+              (i > 0 ? " border-t border-[#EFECE5]" : "")
+            }
+          >
+            <span className="font-mono text-[10px] tracking-[0.2em] text-[#B8B2A4]">
+              {step.index}
+            </span>
+            <span className="w-16 shrink-0 font-mono text-[11px] font-medium tracking-[0.18em] text-[#141310]">
+              {step.term}
+            </span>
+            <span className="text-[13px] text-[#6F6A5E]">{step.text}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -29,65 +87,68 @@ export function AuthShell({
   children,
 }: AuthShellProps) {
   return (
-    <div className="auth-dark relative flex min-h-dvh flex-1 flex-col overflow-hidden bg-[#070B14]">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_75%_60%_at_30%_20%,rgba(91,124,255,0.13),transparent_70%)]" />
-      <div className="absolute inset-0 [background-image:radial-gradient(circle_at_center,rgba(123,144,255,0.09)_1px,transparent_1.5px)] [background-size:26px_26px]" />
-      <SpaceCanvas className="absolute inset-0" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_95%_85%_at_center,transparent_50%,rgba(7,11,20,0.6)_100%)]" />
+    <div className="auth-light relative flex min-h-dvh flex-1 flex-col bg-[#F5F2EC] text-[#171512]">
+      <style>{authEnterCss}</style>
 
-      <header className="absolute left-5 top-5 z-10 md:left-8 md:top-8">
+      <header className="flex items-center justify-between border-b border-[#141310]/[0.07] px-5 py-4 md:px-10 md:py-5">
         <Wordmark />
+        <p className="hidden font-mono text-[10px] uppercase tracking-[0.24em] text-[#8A8578] sm:block">
+          Auth — Console
+        </p>
       </header>
 
-      <div className="relative z-10 flex flex-1 items-center justify-center px-4 py-20 sm:px-6">
-        <div className="w-full max-w-[400px] rounded-2xl border border-white/[0.08] bg-[#0B1120]/85 p-7 shadow-[0_32px_80px_-24px_rgba(0,0,0,0.7)] backdrop-blur-xl sm:p-9">
-          <p className="font-mono text-[10px] tracking-[0.24em] text-[#5B7CFF]">
-            {eyebrow}
-          </p>
-          <h1 className="mt-3 text-[26px] font-semibold tracking-tight text-[#EDF1FA]">
-            {title}
-          </h1>
-          <p className="mt-2 text-sm leading-relaxed text-[#8B95B0]">
-            {description}
-          </p>
-          <div className="mt-8">{children}</div>
-          {footer ? (
-            <div className="mt-8 border-t border-white/[0.06] pt-5 text-center text-sm text-[#8B95B0]">
-              {footer}
-            </div>
-          ) : null}
-        </div>
-      </div>
+      <main className="flex flex-1 items-center px-5 py-12 md:px-10 md:py-16">
+        <div className="mx-auto grid w-full max-w-6xl items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
+          <section className="auth-enter">
+            <EditorialIntro />
+          </section>
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 hidden items-end justify-between gap-4 p-5 sm:flex md:p-7">
-        <div>
-          <p className="font-mono text-[10px] tracking-[0.22em] text-[#7B90FF]/75">
-            ℝ¹⁰²⁴ · COSINE · HNSW · TOP-3
-          </p>
-          <p className="mt-1.5 text-[13px] text-[#8B95B0]">
-            让每段短文本，找到它的近邻。
-          </p>
+          <section className="auth-enter flex [animation-delay:120ms] lg:justify-end">
+            <div className="w-full max-w-[420px] rounded-xl border border-[#E8E5DE] bg-white p-7 shadow-[0_24px_60px_-28px_rgba(23,21,18,0.045)] sm:p-9">
+              <p className="font-mono text-[10px] uppercase tracking-[0.26em] text-[#B4542E]">
+                {eyebrow}
+              </p>
+              <h2 className="mt-3 font-display text-[28px] font-semibold tracking-[-0.02em] text-[#141310]">
+                {title}
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-[#6F6A5E]">
+                {description}
+              </p>
+              <div className="mt-8">{children}</div>
+              {footer ? (
+                <div className="mt-8 border-t border-[#EFECE5] pt-5 text-center text-sm text-[#6F6A5E]">
+                  {footer}
+                </div>
+              ) : null}
+            </div>
+          </section>
         </div>
-        <p className="hidden shrink-0 font-mono text-[10px] tracking-[0.18em] text-[#46506B] md:block">
-          FIG.01 — EMBEDDING SPACE
+      </main>
+
+      <footer className="flex items-center justify-between border-t border-[#141310]/[0.07] px-5 py-4 md:px-10">
+        <p className="font-mono text-[10px] tracking-[0.22em] text-[#8A8578]">
+          ℝ¹⁰²⁴ · COSINE · HNSW · TOP-3
         </p>
-      </div>
+        <p className="hidden shrink-0 font-mono text-[10px] uppercase tracking-[0.18em] text-[#B8B2A4] md:block">
+          Fig.01 — Embedding space
+        </p>
+      </footer>
     </div>
   );
 }
 
 export const authFieldClass =
-  "h-11 rounded-lg border-white/10 bg-white/[0.04] px-3.5 text-[15px] text-[#EAF0FB] placeholder:text-[#525D7C] focus-visible:border-[#5B7CFF]/70 focus-visible:ring-[#5B7CFF]/20 aria-invalid:border-[#FF8A66]/60 aria-invalid:ring-[#FF8A66]/15";
+  "h-11 rounded-md border-[#E5E2DA] bg-white px-3.5 text-[15px] text-[#171512] placeholder:text-[#A9A294] focus-visible:border-[#141310]/50 focus-visible:ring-[#141310]/10 aria-invalid:border-[#D98A85] aria-invalid:ring-[#9F2F2D]/10";
 
-export const authLabelClass = "text-[13px] font-medium text-[#A7B0C8]";
+export const authLabelClass = "text-[13px] font-medium text-[#57534A]";
 
 export const authErrorClass =
-  "rounded-lg border border-[#FF8A66]/25 bg-[#FF8A66]/[0.08] px-3.5 py-2.5 text-sm text-[#FFA585]";
+  "rounded-md border border-[#F1D3D2] bg-[#FDEBEC] px-3.5 py-2.5 text-sm text-[#9F2F2D]";
 
-export const authFieldErrorClass = "text-xs text-[#FF9E80]";
+export const authFieldErrorClass = "text-xs text-[#9F2F2D]";
 
 export const authSubmitClass =
-  "mt-1 h-11 w-full rounded-lg bg-[#5B7CFF] text-sm font-medium text-white shadow-[0_8px_24px_-8px_rgba(91,124,255,0.55)] hover:bg-[#6E8CFF] focus-visible:border-[#8FA6FF] focus-visible:ring-[#5B7CFF]/30";
+  "mt-1 h-11 w-full rounded-md bg-[#141310] text-sm font-medium text-[#FAF9F6] hover:bg-[#2E2C28] active:scale-[0.98] focus-visible:border-[#141310] focus-visible:ring-[#141310]/20";
 
 export const authLinkClass =
-  "font-medium text-[#8FA6FF] underline-offset-4 transition-colors hover:text-[#B4C4FF] hover:underline";
+  "font-medium text-[#141310] underline decoration-[#D9552C]/50 underline-offset-4 transition-colors hover:decoration-[#D9552C]";

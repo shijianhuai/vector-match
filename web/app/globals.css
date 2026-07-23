@@ -53,38 +53,38 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.51 0.16 264);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.95 0.02 264);
-  --accent-foreground: oklch(0.4 0.12 264);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.51 0.16 264);
-  --chart-1: oklch(0.51 0.16 264);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.51 0.16 264);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.95 0.02 264);
-  --sidebar-accent-foreground: oklch(0.4 0.12 264);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.51 0.16 264);
+  --background: #faf8f4;
+  --foreground: #141310;
+  --card: #ffffff;
+  --card-foreground: #141310;
+  --popover: #ffffff;
+  --popover-foreground: #141310;
+  --primary: #141310;
+  --primary-foreground: #faf9f6;
+  --secondary: #f1eee7;
+  --secondary-foreground: #141310;
+  --muted: #f1eee7;
+  --muted-foreground: #6f6a5e;
+  --accent: #efece5;
+  --accent-foreground: #141310;
+  --destructive: #9f2f2d;
+  --border: #e8e5de;
+  --input: #e5e2da;
+  --ring: #141310;
+  --chart-1: #d9552c;
+  --chart-2: #141310;
+  --chart-3: #8a8578;
+  --chart-4: #c7c0b2;
+  --chart-5: #57534a;
+  --radius: 0.375rem;
+  --sidebar: #f5f2ec;
+  --sidebar-foreground: #141310;
+  --sidebar-primary: #141310;
+  --sidebar-primary-foreground: #faf9f6;
+  --sidebar-accent: #ece8e0;
+  --sidebar-accent-foreground: #141310;
+  --sidebar-border: #e8e5de;
+  --sidebar-ring: #141310;
 }
 
 .dark {
@@ -133,11 +133,11 @@
   }
 }
 
-.auth-dark input:-webkit-autofill,
-.auth-dark input:-webkit-autofill:hover,
-.auth-dark input:-webkit-autofill:focus {
-  -webkit-text-fill-color: #eaf0fb;
-  caret-color: #eaf0fb;
-  box-shadow: 0 0 0 1000px #101728 inset;
+.auth-light input:-webkit-autofill,
+.auth-light input:-webkit-autofill:hover,
+.auth-light input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #171512;
+  caret-color: #171512;
+  box-shadow: 0 0 0 1000px #ffffff inset;
   transition: background-color 999999s ease-out;
 }

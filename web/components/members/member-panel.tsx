@@ -191,7 +191,7 @@ export function MemberPanel({ datasetId, myRole }: MemberPanelProps) {
                 </button>
               )}
               {dropdownOpen && (
-                <div className="absolute inset-x-0 top-full z-20 mt-1 overflow-hidden rounded-lg border bg-popover shadow-md">
+                <div className="absolute inset-x-0 top-full z-20 mt-1 overflow-hidden rounded-lg border bg-popover shadow-[0_16px_40px_-24px_rgba(23,21,18,0.08)]">
                   {searchQuery.isLoading ? (
                     <div className="flex items-center gap-2 px-3 py-2.5 text-sm text-muted-foreground">
                       <Loader2Icon className="size-4 animate-spin" />
