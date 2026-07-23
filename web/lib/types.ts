@@ -3,6 +3,7 @@ export type AuthUser = {
   username: string;
   email: string | null;
   isSuperuser: boolean;
+  allowApiKey: boolean;
 };
 
 export type Role = "owner" | "editor" | "viewer";
@@ -28,6 +29,15 @@ export type User = {
   createTime: string;
   isActive: boolean;
   isSuperuser: boolean;
+  allowApiKey: boolean;
+};
+
+export type ApiKey = {
+  id: number;
+  name: string;
+  key: string;
+  createTime: string;
+  lastUsedAt: string | null;
 };
 
 export type CollectionType = "folder" | "virtual";

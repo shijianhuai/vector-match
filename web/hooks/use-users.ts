@@ -37,7 +37,11 @@ export function useUpdateUser() {
       payload,
     }: {
       userId: number;
-      payload: { isActive?: boolean; isSuperuser?: boolean };
+      payload: {
+        isActive?: boolean;
+        isSuperuser?: boolean;
+        allowApiKey?: boolean;
+      };
     }) => userApi.update(userId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: userKeys.all });

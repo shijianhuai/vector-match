@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from vector_match.core.config import Settings, get_settings
 from vector_match.db.models import Collection, DatasetData, User
+from vector_match.repositories.api_keys import ApiKeyRepository
 from vector_match.repositories.members import DatasetMemberRepository
 from vector_match.repositories.users import UserRepository
 
@@ -187,6 +188,19 @@ async def get_current_user(
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="missing or malformed Authorization header")
     token = authorization.removeprefix("Bearer ")
+    if token.startswith("sk-"):
+        key_repo = ApiKeyRepository(session)
+        api_key = await key_repo.get_by_key(token)
+        if api_key is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token")
+        user_repo = UserRepository(session)
+        user = await user_repo.get_by_id(api_key.user_id)
+        if user is None or not user.is_active:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="user inactive or not found")
+        await key_repo.touch_last_used(api_key)
+        # 鉴权依赖中独立提交, 确保 last_used_at 落盘 (读请求后续无 commit)
+        await session.commit()
+        return user
     try:
         payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
@@ -205,6 +219,13 @@ async def get_current_user(
     if user is None or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="user inactive or not found")
     return user
+
+
+async def require_api_key_permission(user: User = Depends(get_current_user)) -> None:
+    if not user.is_superuser and not user.allow_api_key:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="API Key 功能未开放，请联系管理员"  # noqa: RUF001
+        )
 
 
 async def require_superuser(

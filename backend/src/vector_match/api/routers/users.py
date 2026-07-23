@@ -38,6 +38,10 @@ async def update_user(
     actor: User = Depends(get_current_user),
 ):
     user = await UserService(session).update_user(
-        actor=actor, user_id=user_id, is_active=req.is_active, is_superuser=req.is_superuser
+        actor=actor,
+        user_id=user_id,
+        is_active=req.is_active,
+        is_superuser=req.is_superuser,
+        allow_api_key=req.allow_api_key,
     )
     return UserResponse.model_validate(user)

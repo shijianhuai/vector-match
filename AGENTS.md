@@ -31,7 +31,7 @@ vector-match：通用短文本匹配服务（语义/全文/混合检索 + 重排
 
 ## 常用命令
 
-后端（`backend/`）：`uv sync`、`uv run pytest`（DB 测试需 `TEST_DATABASE_URL` 指向测试 pg）、`uv run ruff check`、`uv run alembic upgrade head`
+后端（`backend/`）：`uv sync`、`uv run pytest`（DB 测试需 `TEST_DATABASE_URL` 指向独立测试库，如 `postgresql+psycopg://postgres:postgres@localhost:5432/vector_match_test`；库名必须含 "test"，部分测试会物理清表，严禁指向开发库 `vector_match`）、`uv run ruff check`、`uv run alembic upgrade head`
 
 前端（`web/`）：`npm run dev`、`npx tsc --noEmit`、`npm run lint`、`npm run build`
 

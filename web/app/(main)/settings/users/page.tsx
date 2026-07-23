@@ -41,7 +41,7 @@ function UserRow({ user, currentUserId }: { user: User; currentUserId: number })
   const update = useUpdateUser();
   const isSelf = user.id === currentUserId;
   const [pending, setPending] = React.useState<{
-    type: "active" | "superuser";
+    type: "active" | "superuser" | "allowApiKey";
     value: boolean;
   } | null>(null);
 
@@ -61,12 +61,24 @@ function UserRow({ user, currentUserId }: { user: User; currentUserId: number })
     }
   };
 
+  const handleAllowApiKeyChange = (checked: boolean) => {
+    if (!checked) {
+      setPending({ type: "allowApiKey", value: checked });
+    } else {
+      update.mutate({ userId: user.id, payload: { allowApiKey: checked } });
+    }
+  };
+
   const handleConfirm = () => {
     if (!pending) return;
-    const payload =
-      pending.type === "active"
-        ? { isActive: pending.value }
-        : { isSuperuser: pending.value };
+    let payload;
+    if (pending.type === "active") {
+      payload = { isActive: pending.value };
+    } else if (pending.type === "superuser") {
+      payload = { isSuperuser: pending.value };
+    } else {
+      payload = { allowApiKey: pending.value };
+    }
     update.mutate({ userId: user.id, payload });
     setPending(null);
   };
@@ -74,11 +86,17 @@ function UserRow({ user, currentUserId }: { user: User; currentUserId: number })
   const handleCancel = () => setPending(null);
 
   const pendingLabel =
-    pending?.type === "active" ? "禁用用户" : "设为超管";
+    pending?.type === "active"
+      ? "禁用用户"
+      : pending?.type === "superuser"
+        ? "设为超管"
+        : "关闭 API Key";
   const pendingDescription =
     pending?.type === "active"
       ? `确定禁用用户「${user.username}」吗？该用户将被登出且无法登录。`
-      : `确定将用户「${user.username}」设为站点超管吗？该用户将获得全部管理权限。`;
+      : pending?.type === "superuser"
+        ? `确定将用户「${user.username}」设为站点超管吗？该用户将获得全部管理权限。`
+        : `确定关闭用户「${user.username}」的 API Key 权限吗？该用户将无法使用 API Key 访问。`;
 
   return (
     <>
@@ -109,6 +127,14 @@ function UserRow({ user, currentUserId }: { user: User; currentUserId: number })
             disabled={isSelf || update.isPending}
             onCheckedChange={handleSuperuserChange}
             aria-label={`${user.username} 是否超管`}
+          />
+        </TableCell>
+        <TableCell>
+          <Switch
+            checked={user.allowApiKey}
+            disabled={isSelf || update.isPending}
+            onCheckedChange={handleAllowApiKeyChange}
+            aria-label={`${user.username} 是否允许 API Key`}
           />
         </TableCell>
       </TableRow>
@@ -180,7 +206,12 @@ export default function UsersSettingsPage() {
 
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-8">
-      <h1 className="text-2xl font-semibold tracking-tight">用户管理</h1>
+      <p className="font-mono text-[10px] uppercase tracking-[0.26em] text-muted-foreground">
+        Users
+      </p>
+      <h1 className="mt-2 font-display text-[28px] font-semibold tracking-[-0.02em]">
+        用户管理
+      </h1>
 
       {isLoading ? (
         <div className="mt-6 space-y-2">
@@ -212,13 +243,14 @@ export default function UsersSettingsPage() {
                   <TableHead className="w-44">创建时间</TableHead>
                   <TableHead className="w-20">启用</TableHead>
                   <TableHead className="w-20">超管</TableHead>
+                  <TableHead className="w-24">API Key</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data?.list.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={5}
+                      colSpan={6}
                       className="py-12 text-center text-sm text-muted-foreground"
                     >
                       暂无用户

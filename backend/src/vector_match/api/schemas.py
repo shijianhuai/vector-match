@@ -69,6 +69,7 @@ class UserResponse(CamelModel):
     email: str | None
     is_superuser: bool
     is_active: bool
+    allow_api_key: bool
     create_time: datetime
 
 
@@ -80,6 +81,7 @@ class UserSearchItem(CamelModel):
 class UserUpdateRequest(CamelModel):
     is_active: bool | None = None
     is_superuser: bool | None = None
+    allow_api_key: bool | None = None
 
 
 class UserListResponse(CamelModel):
@@ -90,6 +92,41 @@ class UserListResponse(CamelModel):
 class LoginResponse(CamelModel):
     token: str
     user: UserResponse
+
+
+class ApiKeyCreateRequest(CamelModel):
+    name: str = Field(min_length=1, max_length=128)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def _strip_name(cls, v: str) -> str:
+        if isinstance(v, str):
+            return v.strip()
+        return v
+
+
+class ApiKeyUpdateRequest(CamelModel):
+    name: str = Field(min_length=1, max_length=128)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def _strip_name(cls, v: str) -> str:
+        if isinstance(v, str):
+            return v.strip()
+        return v
+
+
+class ApiKeyResponse(CamelModel):
+    id: int
+    name: str
+    key: str
+    create_time: datetime
+    last_used_at: datetime | None
+
+
+class ApiKeyListResponse(CamelModel):
+    list: list[ApiKeyResponse]
+    total: int
 
 
 class CollectionCreateRequest(CamelModel):

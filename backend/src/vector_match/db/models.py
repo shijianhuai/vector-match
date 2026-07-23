@@ -34,6 +34,7 @@ class User(TimestampValidMixin, Base):
     password_hash: Mapped[str] = mapped_column(String(255), comment="密码哈希")
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False, comment="是否超级管理员")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, comment="是否启用")
+    allow_api_key: Mapped[bool] = mapped_column(Boolean, default=False, comment="是否允许使用 API Key 功能")
 
 
 class DatasetMember(TimestampValidMixin, Base):
@@ -102,3 +103,18 @@ class TrainingTask(TimestampValidMixin, Base):
         DateTime(timezone=True), default=utcnow, index=True, comment="下次重试时间"
     )
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True, comment="最近一次错误信息")
+
+
+class ApiKey(TimestampValidMixin, Base):
+    __tablename__ = "api_keys"
+    __table_args__ = (
+        Index("ix_api_keys_key", "key", unique=True, postgresql_where=text("isvalid = 1")),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True, comment="API Key ID")
+    user_id: Mapped[int] = mapped_column(BigInteger, index=True, comment="用户ID")
+    name: Mapped[str] = mapped_column(String(128), comment="Key 名称")
+    key: Mapped[str] = mapped_column(String(64), comment="Key 值")
+    last_used_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, comment="最后使用时间"
+    )

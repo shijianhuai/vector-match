@@ -1,4 +1,5 @@
 import type {
+  ApiKey,
   AuthUser,
   Collection,
   DataDetail,
@@ -34,7 +35,8 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   if (!res.ok) {
     if (
       res.status === 401 &&
-      path !== "/api/proxy/auth/me" &&
+      path.startsWith(baseUrl) &&
+      path !== `${baseUrl}/auth/me` &&
       typeof window !== "undefined"
     ) {
       await fetch("/api/auth/logout", { method: "POST" });
@@ -207,11 +209,34 @@ export const userApi = {
     fetchJson<UserSearchResult[]>(`/users/search${buildQuery({ q })}`),
   update: (
     userId: number,
-    payload: { isActive?: boolean; isSuperuser?: boolean },
+    payload: {
+      isActive?: boolean;
+      isSuperuser?: boolean;
+      allowApiKey?: boolean;
+    },
   ) =>
     fetchJson<void>(`/users/${encodeURIComponent(userId)}`, {
       method: "PATCH",
       body: JSON.stringify(payload),
+    }),
+};
+
+export const apiKeyApi = {
+  list: (params: { offset: number; pageSize: number }) =>
+    fetchJson<ListResponse<ApiKey>>(`/api-keys/${buildQuery(params)}`),
+  create: (payload: { name: string }) =>
+    fetchJson<ApiKey>("/api-keys/", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  update: (id: number, payload: { name: string }) =>
+    fetchJson<ApiKey>(`/api-keys/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  remove: (id: number) =>
+    fetchJson<void>(`/api-keys/${encodeURIComponent(id)}`, {
+      method: "DELETE",
     }),
 };
 

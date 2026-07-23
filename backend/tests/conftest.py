@@ -27,6 +27,12 @@ def _set_test_env():
 def _migrate_test_db(_set_test_env):
     if not TEST_DATABASE_URL:
         return
+    db_name = TEST_DATABASE_URL.rsplit("/", 1)[-1].split("?")[0]
+    if "test" not in db_name:
+        pytest.exit(
+            f"TEST_DATABASE_URL 指向的库 {db_name!r} 不是测试库(库名需含 'test'), "
+            "部分测试会物理清表, 为防止误删开发数据已中止。请使用独立测试库, 如 vector_match_test"
+        )
     from alembic import command
     from alembic.config import Config
 
@@ -66,9 +72,20 @@ async def api_app(db_session):
 def make_user(db_session):
     from vector_match.services.users import UserService
 
-    async def _make(username: str, password: str = "password", is_superuser: bool = False):
+    async def _make(
+        username: str,
+        password: str = "password",
+        is_superuser: bool = False,
+        allow_api_key: bool = False,
+    ):
         svc = UserService(db_session)
-        return await svc.create_user(username=username, password=password, is_superuser=is_superuser)
+        user = await svc.create_user(
+            username=username, password=password, is_superuser=is_superuser
+        )
+        if allow_api_key and not is_superuser:
+            user.allow_api_key = True
+            await db_session.commit()
+        return user
 
     return _make
 

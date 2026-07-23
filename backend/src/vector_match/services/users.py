@@ -59,9 +59,9 @@ class UserService:
         if user is None:
             # 用户不存在时也执行一次 argon2 verify, 避免通过时序差异枚举用户
             verify_password(password, _dummy_hash())
-            raise HTTPException(status_code=401, detail="invalid credentials")
+            raise HTTPException(status_code=401, detail="用户不存在或账号密码错误")
         if not user.is_active or not verify_password(password, user.password_hash):
-            raise HTTPException(status_code=401, detail="invalid credentials")
+            raise HTTPException(status_code=401, detail="用户不存在或账号密码错误")
         return user
 
     async def get_by_id(self, user_id) -> User | None:
@@ -74,14 +74,25 @@ class UserService:
         return await self.users.search_valid(keyword.lower().strip(), limit)
 
     async def update_user(
-        self, actor: User, user_id: int, is_active: bool | None = None, is_superuser: bool | None = None
+        self,
+        actor: User,
+        user_id: int,
+        is_active: bool | None = None,
+        is_superuser: bool | None = None,
+        allow_api_key: bool | None = None,
     ) -> User:
         if actor.id == user_id:
             raise HTTPException(status_code=422, detail="cannot modify yourself")
         user = await self.users.get_by_id(user_id)
         if user is None:
             raise HTTPException(status_code=404, detail="user not found")
-        await self.users.update_fields(user, is_active=is_active, is_superuser=is_superuser, updater_id=actor.id)
+        await self.users.update_fields(
+            user,
+            is_active=is_active,
+            is_superuser=is_superuser,
+            allow_api_key=allow_api_key,
+            updater_id=actor.id,
+        )
         await self.session.commit()
         return user
 

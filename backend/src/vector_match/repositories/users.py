@@ -79,12 +79,15 @@ class UserRepository:
         user: User,
         is_active: bool | None = None,
         is_superuser: bool | None = None,
+        allow_api_key: bool | None = None,
         updater_id: int | None = None,
     ) -> None:
         if is_active is not None:
             user.is_active = is_active
         if is_superuser is not None:
             user.is_superuser = is_superuser
+        if allow_api_key is not None:
+            user.allow_api_key = allow_api_key
         if updater_id is not None:
             user.updater_id = updater_id
         await self.session.flush()

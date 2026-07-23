@@ -3,8 +3,9 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { DatabaseIcon, UsersIcon } from "lucide-react";
+import { DatabaseIcon, KeyRoundIcon, UsersIcon } from "lucide-react";
 import { useMe } from "@/hooks/use-auth";
+import type { AuthUser } from "@/lib/types";
 import { BrandMark } from "@/components/brand-mark";
 import { UserMenu } from "@/components/user-menu";
 import { cn } from "@/lib/utils";
@@ -14,10 +15,12 @@ interface NavItem {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   superuserOnly?: boolean;
+  visible?: (me: AuthUser) => boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/datasets", label: "知识库", icon: DatabaseIcon },
+  { href: "/settings/api-keys", label: "API Keys", icon: KeyRoundIcon, visible: (me) => me.isSuperuser || me.allowApiKey },
   { href: "/settings/users", label: "用户管理", icon: UsersIcon, superuserOnly: true },
 ];
 
@@ -47,7 +50,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { data: me } = useMe();
 
-  const items = NAV_ITEMS.filter((item) => !item.superuserOnly || me?.isSuperuser);
+  const items = NAV_ITEMS.filter((item) => {
+    if (item.superuserOnly) return me?.isSuperuser;
+    if (item.visible) return me ? item.visible(me) : false;
+    return true;
+  });
 
   return (
     <div className="flex flex-1 items-stretch">
@@ -58,7 +65,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav className="flex-1 space-y-1 px-3">
-          <p className="px-2 pb-1.5 text-xs font-medium text-muted-foreground">
+          <p className="px-2 pb-1.5 font-mono text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
             导航
           </p>
           {items.map((item) => {
@@ -71,10 +78,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 className={cn(
                   "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors duration-150",
                   active
-                    ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+                    ? "font-medium text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground/60 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
                 )}
               >
+                <span
+                  aria-hidden
+                  className={cn(
+                    "size-1.5 shrink-0 transition-colors",
+                    active ? "bg-[#D9552C]" : "bg-transparent"
+                  )}
+                />
                 <item.icon className="size-4 shrink-0" />
                 {item.label}
               </Link>
@@ -103,10 +117,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   className={cn(
                     "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm transition-colors duration-150",
                     active
-                      ? "bg-accent font-medium text-accent-foreground"
+                      ? "font-medium text-foreground"
                       : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
                   )}
                 >
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "size-1.5 shrink-0 transition-colors",
+                      active ? "bg-[#D9552C]" : "bg-transparent"
+                    )}
+                  />
                   <item.icon className="size-4" />
                   {item.label}
                 </Link>

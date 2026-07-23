@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from vector_match.api.routers import auth, collections, data, datasets, health, search, users
+from vector_match.api.routers import api_keys, auth, collections, data, datasets, health, search, users
 from vector_match.core.config import get_settings
 from vector_match.core.exceptions import ConflictError, NotFoundError, ProviderConfigError, ValidationError
 from vector_match.db.session import make_engine, make_session_factory
@@ -56,6 +56,7 @@ def create_app() -> FastAPI:
 
     app.include_router(health.router)
     app.include_router(auth.router)
+    app.include_router(api_keys.router)
     app.include_router(datasets.router)
     app.include_router(collections.router)
     app.include_router(data.router)
