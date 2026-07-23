@@ -24,7 +24,7 @@ vector-match：通用短文本匹配服务（语义/全文/混合检索 + 重排
 ## 关键约定
 
 - **认证**：JWT。`POST /api/auth/login` 拿 token；除 `/health`、`/api/auth/register|login` 外全部 `Authorization: Bearer <jwt>`（`JWT_SECRET` 环境变量，必填）。前端不持 token：登录由 BFF 写 httpOnly Cookie，代理转发时注入
-- **授权**：按知识库成员角色 `owner/editor/viewer`（`dataset_members` 表）+ 站点级 superuser；依赖 `require_dataset_access` / `require_collection_access` / `require_data_access` 按端点族解析 id 后判定；dataset detail 响应含 `myRole` 供前端权限化 UI
+- **授权**：站点级角色 `superadmin/admin/user`（`users.role`），新用户注册默认 `user` 且 `is_approved=false`，登录会被拒绝并提示“账号正在审核中”；只有 `superadmin` 可审批用户、修改角色。`admin`/`superadmin` 可创建知识库，普通用户只能被授权为成员。知识库成员角色 `owner/editor/viewer`（`dataset_members` 表），`owner` 仅限创建者/站点管理员；`editor` 只能操作数据（push/update/delete），不能管理集合、成员与设置。依赖 `require_dataset_access` / `require_collection_access` / `require_data_access` 按端点族解析 id 后判定；dataset detail 响应含 `myRole` 与 `creatorId` 供前端权限化 UI
 - **API 形状**：字段 camelCase；分页参数 `offset`/`pageSize`（≤100）；collection 删除走 body `{collectionIds}`，dataset/data 删除走 `?id=`；错误体统一 `{detail: string}`（422 时 detail 为数组）
 - **数据流**：pushData（≤200 条/批）→ worker 异步训练 → `trained=true` 后才可检索；folder 集合不能 pushData（仅 virtual）
 - **Embedding**：`EMBEDDING_DIM` 由 ORM/迁移直接读 `os.environ`，不经 pydantic-settings；compose 之外运行必须显式 export

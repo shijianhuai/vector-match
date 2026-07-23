@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { CheckIcon, CopyIcon, Loader2Icon } from "lucide-react";
+import { useMe } from "@/hooks/use-auth";
 import {
   useDataset,
   useDeleteDataset,
@@ -63,9 +64,11 @@ export default function DatasetSettingsPage() {
   const updateMutation = useUpdateDataset();
   const deleteMutation = useDeleteDataset();
 
+  const { data: me } = useMe();
   const myRole = dataset?.myRole ?? "viewer";
-  const canEdit = myRole === "owner" || myRole === "editor";
-  const canDelete = myRole === "owner";
+  const canEdit = myRole === "owner";
+  const canDelete =
+    canEdit && (me?.role === "superadmin" || dataset?.creatorId === me?.id);
 
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [copied, setCopied] = React.useState(false);

@@ -4,7 +4,9 @@ import { useRouter } from "next/navigation";
 import { LogOutIcon, SettingsIcon, UserIcon } from "lucide-react";
 import { useMe, useLogout } from "@/hooks/use-auth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { roleLabel } from "@/hooks/use-users";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,7 +50,12 @@ export function UserMenu({ menuSide = "bottom", menuAlign = "end", className }: 
           <DropdownMenuLabel className="flex items-center gap-2 font-normal">
             <UserIcon className="size-4 shrink-0 text-muted-foreground" />
             <span className="flex min-w-0 flex-col">
-              <span className="truncate font-medium">{user.username}</span>
+              <span className="flex items-center gap-2 truncate font-medium">
+                {user.username}
+                <Badge variant={user.role === "superadmin" ? "default" : "secondary"} className="text-[10px]">
+                  {roleLabel(user.role)}
+                </Badge>
+              </span>
               {user.email && (
                 <span className="truncate text-xs text-muted-foreground">
                   {user.email}
@@ -57,7 +64,7 @@ export function UserMenu({ menuSide = "bottom", menuAlign = "end", className }: 
             </span>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          {user.isSuperuser && (
+          {user.role === "superadmin" && (
             <DropdownMenuItem onClick={() => router.push("/settings/users")}>
               <SettingsIcon className="size-4" />
               用户管理

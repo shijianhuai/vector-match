@@ -23,7 +23,7 @@ from vector_match.services.collections import CollectionService
 router = APIRouter(prefix="/api/core/dataset/collection", dependencies=[Depends(get_current_user)])
 
 
-@router.post("/create", dependencies=[Depends(require_dataset_access("editor"))], response_model=IdResponse)
+@router.post("/create", dependencies=[Depends(require_dataset_access("admin"))], response_model=IdResponse)
 async def create_collection(
     req: CollectionCreateRequest,
     session: AsyncSession = Depends(get_db),
@@ -57,7 +57,7 @@ async def collection_detail(id: uuid.UUID, session: AsyncSession = Depends(get_d
     return CollectionResponse.model_validate(await CollectionService(session).detail(id))
 
 
-@router.put("/update", dependencies=[Depends(require_collection_access("editor"))], response_model=IdResponse)
+@router.put("/update", dependencies=[Depends(require_collection_access("admin"))], response_model=IdResponse)
 async def update_collection(
     req: CollectionUpdateRequest,
     session: AsyncSession = Depends(get_db),
@@ -67,7 +67,7 @@ async def update_collection(
     return IdResponse(id=col.id)
 
 
-@router.delete("/delete", dependencies=[Depends(require_collection_access("editor"))], response_model=IdResponse)
+@router.delete("/delete", dependencies=[Depends(require_collection_access("admin"))], response_model=IdResponse)
 async def delete_collections(
     req: CollectionDeleteRequest,
     session: AsyncSession = Depends(get_db),

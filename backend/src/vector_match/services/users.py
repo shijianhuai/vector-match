@@ -30,7 +30,8 @@ class UserService:
         username: str,
         password: str,
         email: str | None = None,
-        is_superuser: bool = False,
+        role: str = "user",
+        is_approved: bool = False,
     ) -> User:
         username = username.lower().strip()
         if email is not None:
@@ -46,7 +47,8 @@ class UserService:
                 username=username,
                 email=email,
                 password_hash=hash_password(password),
-                is_superuser=is_superuser,
+                role=role,
+                is_approved=is_approved,
             )
             await self.session.commit()
         except ConflictError as exc:
@@ -60,6 +62,8 @@ class UserService:
             # 用户不存在时也执行一次 argon2 verify, 避免通过时序差异枚举用户
             verify_password(password, _dummy_hash())
             raise HTTPException(status_code=401, detail="用户不存在或账号密码错误")
+        if not user.is_approved:
+            raise HTTPException(status_code=401, detail="账号正在审核中，请联系超级管理员")  # noqa: RUF001
         if not user.is_active or not verify_password(password, user.password_hash):
             raise HTTPException(status_code=401, detail="用户不存在或账号密码错误")
         return user
@@ -67,8 +71,8 @@ class UserService:
     async def get_by_id(self, user_id) -> User | None:
         return await self.users.get_by_id(user_id)
 
-    async def list_users(self, offset: int, page_size: int) -> tuple[list[User], int]:
-        return await self.users.list_page(offset, page_size)
+    async def list_users(self, offset: int, page_size: int, is_approved: bool | None = None) -> tuple[list[User], int]:
+        return await self.users.list_page(offset, page_size, is_approved=is_approved)
 
     async def search_users(self, keyword: str, limit: int) -> list[User]:
         return await self.users.search_valid(keyword.lower().strip(), limit)
@@ -77,20 +81,32 @@ class UserService:
         self,
         actor: User,
         user_id: int,
+        role: str | None = None,
+        is_approved: bool | None = None,
         is_active: bool | None = None,
-        is_superuser: bool | None = None,
-        allow_api_key: bool | None = None,
     ) -> User:
         if actor.id == user_id:
             raise HTTPException(status_code=422, detail="cannot modify yourself")
         user = await self.users.get_by_id(user_id)
         if user is None:
             raise HTTPException(status_code=404, detail="user not found")
+        if role == "superadmin":
+            is_approved = True
+            is_active = True
+        if role is not None and user.role == "superadmin" and role != "superadmin":
+            # 降级 superadmin 前必须保证至少还有一个启用且已审批的 superadmin
+            other_count = await self.users.count_active_superadmins(exclude_user_id=user_id)
+            if other_count <= 0:
+                raise HTTPException(status_code=422, detail="必须保留至少一个启用的超级管理员")
+        if is_active is False and user.role == "superadmin":
+            other_count = await self.users.count_active_superadmins(exclude_user_id=user_id)
+            if other_count <= 0:
+                raise HTTPException(status_code=422, detail="必须保留至少一个启用的超级管理员")
         await self.users.update_fields(
             user,
+            role=role,
+            is_approved=is_approved,
             is_active=is_active,
-            is_superuser=is_superuser,
-            allow_api_key=allow_api_key,
             updater_id=actor.id,
         )
         await self.session.commit()
@@ -106,7 +122,8 @@ class UserService:
             username=username,
             email=None,
             password_hash=hash_password(settings.admin_password),
-            is_superuser=True,
+            role="superadmin",
+            is_approved=True,
             is_active=True,
         )
         await self.session.commit()

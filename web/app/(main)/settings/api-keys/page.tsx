@@ -418,12 +418,12 @@ export default function ApiKeysSettingsPage() {
     );
   }
 
-  if (me && !me.isSuperuser && !me.allowApiKey) {
+  if (!me || (me.role !== "admin" && me.role !== "superadmin")) {
     return (
       <div className="mx-auto w-full max-w-5xl px-6 py-24 text-center">
         <p className="text-sm font-medium">无权限访问此页面</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          你的账号未启用 API Key 权限，请联系站点管理员。
+          只有管理员和超级管理员可以使用 API Key 管理。
         </p>
         <Button
           variant="outline"

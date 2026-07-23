@@ -27,12 +27,12 @@ class FakeRerank:
         return [0.5 + 0.1 * i for i in range(len(documents))]
 
 
-async def _unique_user(make_user, is_superuser=False):
-    return await make_user(f"u-{uuid.uuid4().hex[:8]}", "password", is_superuser=is_superuser)
+async def _unique_user(make_user, role="user"):
+    return await make_user(f"u-{uuid.uuid4().hex[:8]}", "password", role=role)
 
 
 async def _role_dataset(make_user, db_session):
-    owner = await _unique_user(make_user)
+    owner = await _unique_user(make_user, role="admin")
     editor = await _unique_user(make_user)
     viewer = await _unique_user(make_user)
     outsider = await _unique_user(make_user)
@@ -58,7 +58,7 @@ async def _client(api_app, user):
 
 
 async def test_dataset_create_adds_owner_member(api_app, db_session, make_user):
-    user = await _unique_user(make_user)
+    user = await _unique_user(make_user, role="admin")
     async with await _client(api_app, user) as c:
         resp = await c.post("/api/core/dataset/create", json={"name": "new"})
     assert resp.status_code == 200
@@ -68,7 +68,7 @@ async def test_dataset_create_adds_owner_member(api_app, db_session, make_user):
 
 
 async def test_dataset_detail_has_my_role(api_app, db_session, make_user):
-    owner = await _unique_user(make_user)
+    owner = await _unique_user(make_user, role="admin")
     ds = await DatasetService(db_session).create(user=owner, name="owned", description="")
     await db_session.commit()
     async with await _client(api_app, owner) as c:
@@ -78,7 +78,7 @@ async def test_dataset_detail_has_my_role(api_app, db_session, make_user):
 
 
 async def test_list_filters_for_non_superuser(api_app, db_session, make_user):
-    owner = await _unique_user(make_user)
+    owner = await _unique_user(make_user, role="admin")
     other = await _unique_user(make_user)
     ds = await DatasetService(db_session).create(user=owner, name="owner-ds", description="")
     await db_session.commit()
@@ -121,7 +121,7 @@ async def test_members_crud(api_app, db_session, make_user):
 
 
 async def test_last_owner_remove_protected(api_app, db_session, make_user):
-    owner = await _unique_user(make_user)
+    owner = await _unique_user(make_user, role="admin")
     ds = await DatasetService(db_session).create(user=owner, name="ds", description="")
     await db_session.commit()
     async with await _client(api_app, owner) as c:
@@ -131,7 +131,7 @@ async def test_last_owner_remove_protected(api_app, db_session, make_user):
 
 
 async def test_last_owner_demote_protected(api_app, db_session, make_user):
-    owner = await _unique_user(make_user)
+    owner = await _unique_user(make_user, role="admin")
     ds = await DatasetService(db_session).create(user=owner, name="ds", description="")
     await db_session.commit()
     async with await _client(api_app, owner) as c:
@@ -159,7 +159,7 @@ async def test_editor_cannot_manage_members(api_app, db_session, make_user):
     await db_session.commit()
     async with await _client(api_app, editor) as c:
         resp = await c.get(f"/api/core/dataset/{ds.id}/members")
-        assert resp.status_code == 200
+        assert resp.status_code == 403
         resp = await c.post(f"/api/core/dataset/{ds.id}/members", json={"username": "x", "role": "viewer"})
         assert resp.status_code == 403
 
@@ -184,7 +184,7 @@ async def test_outsider_cannot_search(api_app, db_session, make_user):
 
 
 async def test_collection_cross_dataset_422(api_app, db_session, make_user):
-    owner = await _unique_user(make_user)
+    owner = await _unique_user(make_user, role="admin")
     ds1 = await DatasetService(db_session).create(user=owner, name="ds1", description="")
     ds2 = await DatasetService(db_session).create(user=owner, name="ds2", description="")
     col1 = await CollectionService(db_session).create(dataset_id=ds1.id, parent_id=None, name="c1", type="virtual")
@@ -205,16 +205,16 @@ async def test_users_management_requires_superuser(api_app, db_session, make_use
 
 
 async def test_users_self_modify_422(api_app, db_session, make_user):
-    admin = await _unique_user(make_user, is_superuser=True)
+    admin = await _unique_user(make_user, role="superadmin")
     async with await _client(api_app, admin) as c:
         resp = await c.patch(f"/api/users/{admin.id}", json={"isActive": False})
     assert resp.status_code == 422
 
 
 async def test_superuser_list_sees_all(api_app, db_session, make_user):
-    owner = await _unique_user(make_user)
+    owner = await _unique_user(make_user, role="admin")
     ds = await DatasetService(db_session).create(user=owner, name="super-ds", description="")
-    admin = await _unique_user(make_user, is_superuser=True)
+    admin = await _unique_user(make_user, role="superadmin")
     await db_session.commit()
     async with await _client(api_app, admin) as c:
         resp = await c.get("/api/core/dataset/list")
@@ -223,9 +223,9 @@ async def test_superuser_list_sees_all(api_app, db_session, make_user):
 
 
 async def test_superuser_detail_my_role_owner(api_app, db_session, make_user):
-    owner = await _unique_user(make_user)
+    owner = await _unique_user(make_user, role="admin")
     ds = await DatasetService(db_session).create(user=owner, name="super-ds", description="")
-    admin = await _unique_user(make_user, is_superuser=True)
+    admin = await _unique_user(make_user, role="superadmin")
     await db_session.commit()
     async with await _client(api_app, admin) as c:
         resp = await c.get("/api/core/dataset/detail", params={"id": str(ds.id)})
@@ -263,13 +263,17 @@ async def test_collection_data_access_by_collection_id(api_app, db_session, make
 
 
 async def test_viewer_cannot_update_dataset_settings(api_app, db_session, make_user):
-    ds, _owner, editor, viewer, _ = await _role_dataset(make_user, db_session)
+    ds, owner, editor, viewer, _ = await _role_dataset(make_user, db_session)
     await db_session.commit()
     async with await _client(api_app, viewer) as c:
         resp = await c.put("/api/core/dataset/update", json={"id": str(ds.id), "name": "x"})
     assert resp.status_code == 403
 
     async with await _client(api_app, editor) as c:
+        resp = await c.put("/api/core/dataset/update", json={"id": str(ds.id), "name": "x"})
+    assert resp.status_code == 403
+
+    async with await _client(api_app, owner) as c:
         resp = await c.put("/api/core/dataset/update", json={"id": str(ds.id), "name": "x"})
     assert resp.status_code == 200
 
@@ -287,7 +291,7 @@ async def test_owner_can_delete_dataset(api_app, db_session, make_user):
 
 
 async def test_users_list_and_update(api_app, db_session, make_user):
-    admin = await _unique_user(make_user, is_superuser=True)
+    admin = await _unique_user(make_user, role="superadmin")
     target = await _unique_user(make_user)
     async with await _client(api_app, admin) as c:
         resp = await c.get("/api/users/", params={"offset": 0, "pageSize": 100})
@@ -316,9 +320,9 @@ async def test_add_member_persists_across_sessions():
     suffix = uuid.uuid4().hex[:8]
 
     async with AsyncSession(engine, expire_on_commit=False) as setup_session:
-        owner = await UserService(setup_session).create_user(f"owner-{suffix}", "password")
+        owner = await UserService(setup_session).create_user(f"owner-{suffix}", "password", is_approved=True)
         ds = await DatasetService(setup_session).create(user=owner, name=f"ds-{suffix}", description="")
-        target = await UserService(setup_session).create_user(f"target-{suffix}", "password")
+        target = await UserService(setup_session).create_user(f"target-{suffix}", "password", is_approved=True)
         await setup_session.commit()
 
     async with AsyncSession(engine, expire_on_commit=False) as service_session:
@@ -335,11 +339,11 @@ async def test_add_member_persists_across_sessions():
     await engine.dispose()
 
 
-async def test_users_search_open_to_authenticated(api_app, db_session, make_user):
-    owner = await _unique_user(make_user)
+async def test_users_search_requires_admin(api_app, db_session, make_user):
+    admin = await _unique_user(make_user, role="admin")
     target = await _unique_user(make_user)
 
-    async with await _client(api_app, owner) as c:
+    async with await _client(api_app, admin) as c:
         resp = await c.get("/api/users/search", params={"q": target.username})
     assert resp.status_code == 200
     body = resp.json()
@@ -349,9 +353,8 @@ async def test_users_search_open_to_authenticated(api_app, db_session, make_user
 
     async with await _client(api_app, target) as c:
         resp = await c.get("/api/users/search", params={"q": "nonexistent"})
-    assert resp.status_code == 200
-    assert resp.json() == []
+    assert resp.status_code == 403
 
-    async with await _client(api_app, target) as c:
+    async with await _client(api_app, admin) as c:
         resp = await c.get("/api/users/search", params={"q": ""})
     assert resp.status_code == 422

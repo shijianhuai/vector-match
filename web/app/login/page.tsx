@@ -6,15 +6,15 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowRightIcon, Loader2Icon } from "lucide-react";
+import { ArrowRightIcon, InfoIcon, Loader2Icon } from "lucide-react";
 import { useLogin } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import {
   AuthShell,
-  authErrorClass,
   authFieldClass,
   authFieldErrorClass,
   authLabelClass,
@@ -36,6 +36,10 @@ function LoginForm() {
 
   const from = searchParams.get("from");
   const defaultUsername = searchParams.get("username") ?? "";
+  const pending = searchParams.get("pending") === "1";
+
+  const isPendingApprovalError =
+    login.isError && login.error?.message?.includes("审核");
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -68,8 +72,23 @@ function LoginForm() {
       }
     >
       <form onSubmit={onSubmit} className="grid gap-5">
+        {pending && !login.isError && (
+          <div className="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-primary">
+            <InfoIcon className="mt-0.5 size-4 shrink-0" />
+            <span>账号注册成功，等待管理员审核通过后即可登录。</span>
+          </div>
+        )}
         {login.isError && (
-          <p className={authErrorClass}>{login.error.message}</p>
+          <div
+            className={cn(
+              "rounded-lg border p-3 text-sm",
+              isPendingApprovalError
+                ? "border-amber-200 bg-amber-50 text-amber-800"
+                : "border-destructive/20 bg-destructive/5 text-destructive",
+            )}
+          >
+            {login.error.message}
+          </div>
         )}
         <div className="grid gap-2">
           <Label htmlFor="username" className={authLabelClass}>

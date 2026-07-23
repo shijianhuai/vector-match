@@ -13,6 +13,7 @@ import type {
   Role,
   SearchHit,
   SearchRequest,
+  SiteRole,
   User,
 } from "@/lib/types";
 
@@ -202,19 +203,18 @@ export type UserSearchResult = {
   username: string;
 };
 
+export type UserUpdatePayload = {
+  role?: SiteRole;
+  isApproved?: boolean;
+  isActive?: boolean;
+};
+
 export const userApi = {
-  list: (params: { offset: number; pageSize: number }) =>
+  list: (params: { offset: number; pageSize: number; isApproved?: boolean }) =>
     fetchJson<ListResponse<User>>(`/users/${buildQuery(params)}`),
   search: (q: string) =>
     fetchJson<UserSearchResult[]>(`/users/search${buildQuery({ q })}`),
-  update: (
-    userId: number,
-    payload: {
-      isActive?: boolean;
-      isSuperuser?: boolean;
-      allowApiKey?: boolean;
-    },
-  ) =>
+  update: (userId: number, payload: UserUpdatePayload) =>
     fetchJson<void>(`/users/${encodeURIComponent(userId)}`, {
       method: "PATCH",
       body: JSON.stringify(payload),

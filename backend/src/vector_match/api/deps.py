@@ -13,6 +13,7 @@ from vector_match.repositories.members import DatasetMemberRepository
 from vector_match.repositories.users import UserRepository
 
 ROLE_LEVEL = {"owner": 3, "editor": 2, "viewer": 1}
+SITE_ROLE_LEVEL = {"superadmin": 3, "admin": 2, "user": 1}
 
 
 def _has_enough_role(member, min_role: str) -> bool:
@@ -22,8 +23,11 @@ def _has_enough_role(member, min_role: str) -> bool:
 
 
 async def _check_role(user: User, dataset_id: uuid.UUID | None, min_role: str, db: AsyncSession) -> None:
-    if user.is_superuser:
+    # admin / superadmin 对任意知识库拥有 owner 等效权限
+    if SITE_ROLE_LEVEL.get(user.role, 0) >= SITE_ROLE_LEVEL["admin"]:
         return
+    if min_role == "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="permission denied")
     if dataset_id is None:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="missing required id")
     member = await DatasetMemberRepository(db).get_valid(dataset_id, user.id)
@@ -195,7 +199,7 @@ async def get_current_user(
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token")
         user_repo = UserRepository(session)
         user = await user_repo.get_by_id(api_key.user_id)
-        if user is None or not user.is_active:
+        if user is None or not user.is_active or not user.is_approved:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="user inactive or not found")
         await key_repo.touch_last_used(api_key)
         # 鉴权依赖中独立提交, 确保 last_used_at 落盘 (读请求后续无 commit)
@@ -216,28 +220,21 @@ async def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token") from None
     repo = UserRepository(session)
     user = await repo.get_by_id(user_id_int)
-    if user is None or not user.is_active:
+    if user is None or not user.is_active or not user.is_approved:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="user inactive or not found")
     return user
 
 
-async def require_api_key_permission(user: User = Depends(get_current_user)) -> None:
-    if not user.is_superuser and not user.allow_api_key:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="API Key 功能未开放，请联系管理员"  # noqa: RUF001
-        )
+def require_role(min_role: str):
+    def _dep(user: User = Depends(get_current_user)):
+        if SITE_ROLE_LEVEL.get(user.role, 0) < SITE_ROLE_LEVEL[min_role]:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"{min_role} required")
+    return _dep
 
 
-async def require_superuser(
-    user: User = Depends(get_current_user),
-) -> None:
-    if not user.is_superuser:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="superuser required")
-
-
-def get_embedding(request: Request):
+async def get_embedding(request: Request):
     return request.app.state.embedding
 
 
-def get_rerank(request: Request):
+async def get_rerank(request: Request):
     return request.app.state.rerank

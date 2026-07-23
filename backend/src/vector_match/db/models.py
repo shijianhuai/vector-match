@@ -32,9 +32,9 @@ class User(TimestampValidMixin, Base):
     username: Mapped[str] = mapped_column(String(64), comment="用户名（登录账号）")
     email: Mapped[str | None] = mapped_column(String(255), nullable=True, comment="邮箱")
     password_hash: Mapped[str] = mapped_column(String(255), comment="密码哈希")
-    is_superuser: Mapped[bool] = mapped_column(Boolean, default=False, comment="是否超级管理员")
+    role: Mapped[str] = mapped_column(String(16), default="user", comment="站点角色：superadmin/admin/user")
+    is_approved: Mapped[bool] = mapped_column(Boolean, default=False, comment="是否已通过审批")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, comment="是否启用")
-    allow_api_key: Mapped[bool] = mapped_column(Boolean, default=False, comment="是否允许使用 API Key 功能")
 
 
 class DatasetMember(TimestampValidMixin, Base):

@@ -2,22 +2,25 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { CheckIcon, Loader2Icon, ShieldCheckIcon } from "lucide-react";
 import { useMe } from "@/hooks/use-auth";
-import { useUpdateUser, useUsers } from "@/hooks/use-users";
+import { roleLabel, useUpdateUser, useUsers } from "@/hooks/use-users";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -26,9 +29,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { User } from "@/lib/types";
+import type { SiteRole, User } from "@/lib/types";
 
 const PAGE_SIZE = 20;
+const ROLE_OPTIONS: { value: SiteRole; label: string }[] = [
+  { value: "superadmin", label: "超级管理员" },
+  { value: "admin", label: "管理员" },
+  { value: "user", label: "普通用户" },
+];
+
+type Filter = "all" | "pending" | "approved";
 
 function formatCreateTime(value: string | null | undefined): string {
   if (!value) return "—";
@@ -37,137 +47,117 @@ function formatCreateTime(value: string | null | undefined): string {
   return date.toLocaleString("zh-CN", { hour12: false });
 }
 
+function UserStatusBadge({ user }: { user: User }) {
+  if (!user.isApproved) {
+    return <Badge variant="outline">待审核</Badge>;
+  }
+  return <Badge variant="secondary">已启用</Badge>;
+}
+
+function UserRoleBadge({ role }: { role: SiteRole }) {
+  const variant =
+    role === "superadmin"
+      ? "default"
+      : role === "admin"
+        ? "secondary"
+        : "outline";
+  return (
+    <Badge variant={variant} className="capitalize">
+      {roleLabel(role)}
+    </Badge>
+  );
+}
+
 function UserRow({ user, currentUserId }: { user: User; currentUserId: number }) {
   const update = useUpdateUser();
   const isSelf = user.id === currentUserId;
-  const [pending, setPending] = React.useState<{
-    type: "active" | "superuser" | "allowApiKey";
-    value: boolean;
-  } | null>(null);
+
+  const handleRoleChange = (role: SiteRole) => {
+    update.mutate({ userId: user.id, payload: { role } });
+  };
+
+  const handleApprove = () => {
+    update.mutate({ userId: user.id, payload: { isApproved: true } });
+  };
 
   const handleActiveChange = (checked: boolean) => {
-    if (!checked) {
-      setPending({ type: "active", value: checked });
-    } else {
-      update.mutate({ userId: user.id, payload: { isActive: checked } });
-    }
+    update.mutate({ userId: user.id, payload: { isActive: checked } });
   };
-
-  const handleSuperuserChange = (checked: boolean) => {
-    if (checked) {
-      setPending({ type: "superuser", value: checked });
-    } else {
-      update.mutate({ userId: user.id, payload: { isSuperuser: checked } });
-    }
-  };
-
-  const handleAllowApiKeyChange = (checked: boolean) => {
-    if (!checked) {
-      setPending({ type: "allowApiKey", value: checked });
-    } else {
-      update.mutate({ userId: user.id, payload: { allowApiKey: checked } });
-    }
-  };
-
-  const handleConfirm = () => {
-    if (!pending) return;
-    let payload;
-    if (pending.type === "active") {
-      payload = { isActive: pending.value };
-    } else if (pending.type === "superuser") {
-      payload = { isSuperuser: pending.value };
-    } else {
-      payload = { allowApiKey: pending.value };
-    }
-    update.mutate({ userId: user.id, payload });
-    setPending(null);
-  };
-
-  const handleCancel = () => setPending(null);
-
-  const pendingLabel =
-    pending?.type === "active"
-      ? "禁用用户"
-      : pending?.type === "superuser"
-        ? "设为超管"
-        : "关闭 API Key";
-  const pendingDescription =
-    pending?.type === "active"
-      ? `确定禁用用户「${user.username}」吗？该用户将被登出且无法登录。`
-      : pending?.type === "superuser"
-        ? `确定将用户「${user.username}」设为站点超管吗？该用户将获得全部管理权限。`
-        : `确定关闭用户「${user.username}」的 API Key 权限吗？该用户将无法使用 API Key 访问。`;
 
   return (
-    <>
-      <TableRow>
-        <TableCell className="font-medium">
-          <span className="inline-flex items-center gap-2">
-            {user.username}
-            {isSelf && <Badge variant="outline">我</Badge>}
-          </span>
-        </TableCell>
-        <TableCell className="max-w-56 truncate">
-          {user.email ?? "—"}
-        </TableCell>
-        <TableCell className="w-44 text-muted-foreground tabular-nums">
-          {formatCreateTime(user.createTime)}
-        </TableCell>
-        <TableCell>
-          <Switch
-            checked={user.isActive}
-            disabled={isSelf || update.isPending}
-            onCheckedChange={handleActiveChange}
-            aria-label={`${user.username} 是否启用`}
-          />
-        </TableCell>
-        <TableCell>
-          <Switch
-            checked={user.isSuperuser}
-            disabled={isSelf || update.isPending}
-            onCheckedChange={handleSuperuserChange}
-            aria-label={`${user.username} 是否超管`}
-          />
-        </TableCell>
-        <TableCell>
-          <Switch
-            checked={user.allowApiKey}
-            disabled={isSelf || update.isPending}
-            onCheckedChange={handleAllowApiKeyChange}
-            aria-label={`${user.username} 是否允许 API Key`}
-          />
-        </TableCell>
-      </TableRow>
-      <AlertDialog open={pending !== null} onOpenChange={handleCancel}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>确认{pendingLabel}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {pendingDescription}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={update.isPending}>
-              取消
-            </AlertDialogCancel>
-            <AlertDialogAction
-              disabled={update.isPending}
-              onClick={handleConfirm}
-            >
-              确认
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+    <TableRow>
+      <TableCell className="font-medium">
+        <span className="inline-flex items-center gap-2">
+          {user.username}
+          {isSelf && <Badge variant="outline">我</Badge>}
+        </span>
+      </TableCell>
+      <TableCell className="max-w-56 truncate">
+        {user.email ?? "—"}
+      </TableCell>
+      <TableCell className="w-44 text-muted-foreground tabular-nums">
+        {formatCreateTime(user.createTime)}
+      </TableCell>
+      <TableCell>
+        <UserStatusBadge user={user} />
+      </TableCell>
+      <TableCell>
+        <Select
+          value={user.role}
+          onValueChange={(value) => handleRoleChange(value as SiteRole)}
+          disabled={isSelf || update.isPending}
+        >
+          <SelectTrigger className="w-28">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {ROLE_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </TableCell>
+      <TableCell>
+        <Switch
+          checked={user.isActive}
+          disabled={isSelf || update.isPending}
+          onCheckedChange={handleActiveChange}
+          aria-label={`${user.username} 是否启用`}
+        />
+      </TableCell>
+      <TableCell className="w-32">
+        {!user.isApproved && !isSelf ? (
+          <Button
+            size="sm"
+            variant="default"
+            disabled={update.isPending}
+            onClick={handleApprove}
+          >
+            {update.isPending ? (
+              <Loader2Icon className="animate-spin" />
+            ) : (
+              <CheckIcon />
+            )}
+            通过审核
+          </Button>
+        ) : (
+          <UserRoleBadge role={user.role} />
+        )}
+      </TableCell>
+    </TableRow>
   );
 }
 
 export default function UsersSettingsPage() {
   const router = useRouter();
   const { data: me, isLoading: isLoadingMe } = useMe();
+  const [filter, setFilter] = React.useState<Filter>("all");
   const [offset, setOffset] = React.useState(0);
-  const { data, isLoading, isError, refetch } = useUsers(offset, PAGE_SIZE);
+  const isApproved =
+    filter === "pending" ? false : filter === "approved" ? true : undefined;
+  const { data, isLoading, isError, refetch } = useUsers(offset, PAGE_SIZE, isApproved);
 
   if (isLoadingMe) {
     return (
@@ -182,12 +172,13 @@ export default function UsersSettingsPage() {
     );
   }
 
-  if (!me?.isSuperuser) {
+  if (!me || me.role !== "superadmin") {
     return (
       <div className="mx-auto w-full max-w-5xl px-6 py-24 text-center">
-        <p className="text-sm font-medium">无权限访问此页面</p>
+        <ShieldCheckIcon className="mx-auto size-10 text-muted-foreground" />
+        <p className="mt-4 text-sm font-medium">无权限访问此页面</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          只有站点管理员才能管理用户。
+          只有超级管理员才能管理用户。
         </p>
         <Button
           variant="outline"
@@ -212,6 +203,21 @@ export default function UsersSettingsPage() {
       <h1 className="mt-2 font-display text-[28px] font-semibold tracking-[-0.02em]">
         用户管理
       </h1>
+
+      <Tabs
+        value={filter}
+        onValueChange={(value) => {
+          setFilter(value as Filter);
+          setOffset(0);
+        }}
+        className="mt-6"
+      >
+        <TabsList>
+          <TabsTrigger value="all">全部</TabsTrigger>
+          <TabsTrigger value="pending">待审核</TabsTrigger>
+          <TabsTrigger value="approved">已审核</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {isLoading ? (
         <div className="mt-6 space-y-2">
@@ -241,16 +247,17 @@ export default function UsersSettingsPage() {
                   <TableHead>用户名</TableHead>
                   <TableHead>邮箱</TableHead>
                   <TableHead className="w-44">创建时间</TableHead>
+                  <TableHead className="w-24">状态</TableHead>
+                  <TableHead className="w-36">站点角色</TableHead>
                   <TableHead className="w-20">启用</TableHead>
-                  <TableHead className="w-20">超管</TableHead>
-                  <TableHead className="w-24">API Key</TableHead>
+                  <TableHead className="w-32">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data?.list.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={6}
+                      colSpan={7}
                       className="py-12 text-center text-sm text-muted-foreground"
                     >
                       暂无用户

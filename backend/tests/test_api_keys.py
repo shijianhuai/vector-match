@@ -19,7 +19,7 @@ async def test_normal_user_default_no_permission(client, make_user):
 
 
 async def test_superuser_unrestricted(client, make_user):
-    user = await make_user("apikey-superuser", is_superuser=True)
+    user = await make_user("apikey-superuser", role="superadmin")
     headers = await _jwt_headers(user)
     resp = await client.post("/api/api-keys/", json={"name": "super key"}, headers=headers)
     assert resp.status_code == 200
@@ -28,18 +28,21 @@ async def test_superuser_unrestricted(client, make_user):
     assert list_resp.json()["total"] == 1
 
 
-async def test_allow_api_key_enabled_by_superuser(client, make_user):
-    user = await make_user("apikey-normal-enabled")
+async def test_admin_role_can_access_api_keys(client, make_user):
+    user = await make_user("apikey-promoted")
     headers = await _jwt_headers(user)
-    enable_resp = await client.patch(f"/api/users/{user.id}", json={"allowApiKey": True})
+    assert (await client.get("/api/api-keys/", headers=headers)).status_code == 403
+
+    enable_resp = await client.patch(f"/api/users/{user.id}", json={"role": "admin"})
     assert enable_resp.status_code == 200
-    assert enable_resp.json()["allowApiKey"] is True
+    assert enable_resp.json()["role"] == "admin"
+
     resp = await client.post("/api/api-keys/", json={"name": "enabled key"}, headers=headers)
     assert resp.status_code == 200
 
 
 async def test_create_api_key_format(client, make_user):
-    user = await make_user("apikey-format", allow_api_key=True)
+    user = await make_user("apikey-format", role="admin")
     headers = await _jwt_headers(user)
     resp = await client.post("/api/api-keys/", json={"name": "test key"}, headers=headers)
     assert resp.status_code == 200
@@ -52,7 +55,7 @@ async def test_create_api_key_format(client, make_user):
 
 
 async def test_create_api_key_validation(client, make_user):
-    user = await make_user("apikey-validation", allow_api_key=True)
+    user = await make_user("apikey-validation", role="admin")
     headers = await _jwt_headers(user)
     r1 = await client.post("/api/api-keys/", json={"name": ""}, headers=headers)
     assert r1.status_code == 422
@@ -61,8 +64,8 @@ async def test_create_api_key_validation(client, make_user):
 
 
 async def test_list_only_own_keys(client, make_user):
-    user1 = await make_user("apikey-owner1", allow_api_key=True)
-    user2 = await make_user("apikey-owner2", allow_api_key=True)
+    user1 = await make_user("apikey-owner1", role="admin")
+    user2 = await make_user("apikey-owner2", role="admin")
     h1 = await _jwt_headers(user1)
     h2 = await _jwt_headers(user2)
     await client.post("/api/api-keys/", json={"name": "u1 key"}, headers=h1)
@@ -77,8 +80,8 @@ async def test_list_only_own_keys(client, make_user):
 
 
 async def test_update_key(client, make_user):
-    user1 = await make_user("apikey-update1", allow_api_key=True)
-    user2 = await make_user("apikey-update2", allow_api_key=True)
+    user1 = await make_user("apikey-update1", role="admin")
+    user2 = await make_user("apikey-update2", role="admin")
     h1 = await _jwt_headers(user1)
     h2 = await _jwt_headers(user2)
     create_resp = await client.post("/api/api-keys/", json={"name": "old name"}, headers=h1)
@@ -91,7 +94,7 @@ async def test_update_key(client, make_user):
 
 
 async def test_delete_key(client, make_user):
-    user = await make_user("apikey-delete", allow_api_key=True)
+    user = await make_user("apikey-delete", role="admin")
     h = await _jwt_headers(user)
     create_resp = await client.post("/api/api-keys/", json={"name": "to delete"}, headers=h)
     key_id = create_resp.json()["id"]
@@ -102,8 +105,8 @@ async def test_delete_key(client, make_user):
 
 
 async def test_delete_other_user_key(client, make_user):
-    user1 = await make_user("apikey-del1", allow_api_key=True)
-    user2 = await make_user("apikey-del2", allow_api_key=True)
+    user1 = await make_user("apikey-del1", role="admin")
+    user2 = await make_user("apikey-del2", role="admin")
     h1 = await _jwt_headers(user1)
     h2 = await _jwt_headers(user2)
     create_resp = await client.post("/api/api-keys/", json={"name": "owned"}, headers=h1)
@@ -113,7 +116,7 @@ async def test_delete_other_user_key(client, make_user):
 
 
 async def test_auth_with_api_key(client, make_user):
-    user = await make_user("apikey-auth", allow_api_key=True)
+    user = await make_user("apikey-auth", role="admin")
     h_jwt = await _jwt_headers(user)
     create_resp = await client.post("/api/api-keys/", json={"name": "auth key"}, headers=h_jwt)
     sk = create_resp.json()["key"]
@@ -130,7 +133,7 @@ async def test_auth_with_fake_key(client):
 
 
 async def test_last_used_at_updated_on_sk_auth(client, make_user):
-    user = await make_user("apikey-last-used", allow_api_key=True)
+    user = await make_user("apikey-last-used", role="admin")
     h_jwt = await _jwt_headers(user)
     create_resp = await client.post("/api/api-keys/", json={"name": "usage key"}, headers=h_jwt)
     sk = create_resp.json()["key"]
@@ -144,7 +147,7 @@ async def test_last_used_at_updated_on_sk_auth(client, make_user):
 
 
 async def test_auth_with_deleted_key(client, make_user):
-    user = await make_user("apikey-deleted", allow_api_key=True)
+    user = await make_user("apikey-deleted", role="admin")
     h_jwt = await _jwt_headers(user)
     create_resp = await client.post("/api/api-keys/", json={"name": "deleted key"}, headers=h_jwt)
     key_id = create_resp.json()["id"]
@@ -155,22 +158,20 @@ async def test_auth_with_deleted_key(client, make_user):
     assert me_resp.status_code == 401
 
 
-async def test_user_response_contains_allow_api_key(client, make_user):
-    user = await make_user("apikey-allow-field")
-    enable_resp = await client.patch(f"/api/users/{user.id}", json={"allowApiKey": True})
-    assert enable_resp.status_code == 200
-    assert "allowApiKey" in enable_resp.json()
-    assert enable_resp.json()["allowApiKey"] is True
-
+async def test_user_response_contains_role(client, make_user):
+    user = await make_user("apikey-role-field")
     me_headers = await _jwt_headers(user)
     me_resp = await client.get("/api/auth/me", headers=me_headers)
     assert me_resp.status_code == 200
-    assert "allowApiKey" in me_resp.json()
-    assert me_resp.json()["allowApiKey"] is True
+    assert me_resp.json()["role"] == "user"
+
+    patch_resp = await client.patch(f"/api/users/{user.id}", json={"role": "admin"})
+    assert patch_resp.status_code == 200
+    assert patch_resp.json()["role"] == "admin"
 
     list_resp = await client.get("/api/users/")
     assert list_resp.status_code == 200
     users = list_resp.json()["list"]
     target = next((u for u in users if u["id"] == user.id), None)
     assert target is not None
-    assert target["allowApiKey"] is True
+    assert target["role"] == "admin"

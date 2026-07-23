@@ -10,6 +10,7 @@ from vector_match.repositories.data import DataRepository
 from vector_match.repositories.datasets import DatasetRepository
 from vector_match.repositories.members import DatasetMemberRepository
 from vector_match.repositories.tasks import TaskRepository
+from vector_match.repositories.users import UserRepository
 
 
 class DatasetService:
@@ -20,6 +21,7 @@ class DatasetService:
         self.data = DataRepository(session)
         self.tasks = TaskRepository(session)
         self.members = DatasetMemberRepository(session)
+        self.users = UserRepository(session)
 
     async def create(self, user: User, name: str, description: str = "", vector_model: str = "") -> Dataset:
         ds = await self.datasets.create(
@@ -30,8 +32,8 @@ class DatasetService:
         return ds
 
     async def list(self, user: User | None = None) -> list[tuple[Dataset, str]]:
-        if user is None or user.is_superuser:
-            items = await self.datasets.list()
+        items = await self.datasets.list()
+        if user is None or self._is_admin(user):
             return [(ds, "owner") for ds in items]
         dataset_ids = await self.members.list_dataset_ids_by_user(user.id)
         if not dataset_ids:
@@ -45,12 +47,15 @@ class DatasetService:
         if ds is None:
             raise NotFoundError("dataset not found")
         role = "owner"
-        if user is not None and not user.is_superuser:
+        if user is not None and not self._is_admin(user):
             member = await self.members.get_valid(dataset_id, user.id)
             if member is None:
                 raise HTTPException(status_code=403, detail="permission denied")
             role = member.role
         return ds, role
+
+    def _is_admin(self, user: User) -> bool:
+        return user.role in ("superadmin", "admin")
 
     async def update(
         self, dataset_id: uuid.UUID, name: str | None = None, description: str | None = None, operator_id: int | None = None
@@ -65,6 +70,9 @@ class DatasetService:
         ds = await self.datasets.get(dataset_id)
         if ds is None:
             raise NotFoundError("dataset not found")
+        user = await self.users.get_by_id(operator_id) if operator_id is not None else None
+        if user is not None and user.role == "admin" and ds.creator_id != user.id:
+            raise HTTPException(status_code=403, detail="只能删除自己创建的知识库")
         cols = await self.collections.list_by_dataset(dataset_id)
         col_ids = [c.id for c in cols]
         rows = await self.data.list_by_collections(col_ids)

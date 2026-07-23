@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 const TABS = [
   { segment: "collections", label: "集合" },
   { segment: "search", label: "搜索测试" },
-  { segment: "settings", label: "设置" },
+  { segment: "settings", label: "设置", ownerOnly: true },
 ] as const;
 
 export default function DatasetLayout({
@@ -24,6 +24,9 @@ export default function DatasetLayout({
   const { data: dataset, isLoading, isError } = useDataset(datasetId);
 
   const basePath = `/datasets/${datasetId}`;
+  const visibleTabs = TABS.filter(
+    (tab) => !("ownerOnly" in tab) || dataset?.myRole === "owner",
+  );
 
   return (
     <div className="mx-auto w-full max-w-7xl px-6 py-6">
@@ -59,7 +62,7 @@ export default function DatasetLayout({
       ) : (
         <>
           <nav className="mt-4 flex gap-1 border-b">
-            {TABS.map((tab) => {
+            {visibleTabs.map((tab) => {
               const href = `${basePath}/${tab.segment}`;
               const active = pathname.startsWith(href);
               return (

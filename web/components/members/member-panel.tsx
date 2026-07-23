@@ -31,7 +31,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useMe } from "@/hooks/use-auth";
 import {
   Table,
   TableBody,
@@ -55,6 +54,11 @@ const ROLE_OPTIONS: { value: Role; label: string }[] = [
   { value: "viewer", label: "查看者" },
 ];
 
+const ADDABLE_ROLES: { value: Role; label: string }[] = [
+  { value: "editor", label: "编辑者" },
+  { value: "viewer", label: "查看者" },
+];
+
 function RoleBadge({ role }: { role: Role }) {
   const option = ROLE_OPTIONS.find((o) => o.value === role);
   return <Badge variant="secondary">{option?.label ?? role}</Badge>;
@@ -62,7 +66,6 @@ function RoleBadge({ role }: { role: Role }) {
 
 export function MemberPanel({ datasetId, myRole }: MemberPanelProps) {
   const isOwner = myRole === "owner";
-  const { data: me } = useMe();
   const { data: members, isLoading, isError, refetch } = useMembers(datasetId);
   const addMember = useAddMember(datasetId);
   const updateRole = useUpdateMemberRole(datasetId);
@@ -246,7 +249,7 @@ export function MemberPanel({ datasetId, myRole }: MemberPanelProps) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {ROLE_OPTIONS.map((option) => (
+                {ADDABLE_ROLES.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
@@ -311,19 +314,21 @@ export function MemberPanel({ datasetId, myRole }: MemberPanelProps) {
                       {member.username}
                     </TableCell>
                     <TableCell>
-                      {isOwner ? (
+                      {member.role === "owner" || !isOwner ? (
+                        <RoleBadge role={member.role} />
+                      ) : (
                         <Select
                           value={member.role}
                           onValueChange={(value) =>
                             handleRoleChange(member.userId, value as Role)
                           }
-                          disabled={updateRole.isPending || me?.id === member.userId}
+                          disabled={updateRole.isPending}
                         >
                           <SelectTrigger className="w-28">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {ROLE_OPTIONS.map((option) => (
+                            {ADDABLE_ROLES.map((option) => (
                               <SelectItem
                                 key={option.value}
                                 value={option.value}
@@ -333,8 +338,6 @@ export function MemberPanel({ datasetId, myRole }: MemberPanelProps) {
                             ))}
                           </SelectContent>
                         </Select>
-                      ) : (
-                        <RoleBadge role={member.role} />
                       )}
                     </TableCell>
                     {isOwner && (
@@ -344,7 +347,7 @@ export function MemberPanel({ datasetId, myRole }: MemberPanelProps) {
                           size="sm"
                           className="text-destructive hover:text-destructive"
                           onClick={() => setRemovingUserId(member.userId)}
-                          disabled={removeMember.isPending || me?.id === member.userId}
+                          disabled={removeMember.isPending || member.role === "owner"}
                         >
                           移除
                         </Button>

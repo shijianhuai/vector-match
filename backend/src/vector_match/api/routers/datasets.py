@@ -7,6 +7,7 @@ from vector_match.api.deps import (
     get_current_user,
     get_db,
     require_dataset_access,
+    require_role,
 )
 from vector_match.api.schemas import (
     DatasetCreateRequest,
@@ -25,7 +26,7 @@ from vector_match.services.members import MemberService
 router = APIRouter(prefix="/api/core/dataset", dependencies=[Depends(get_current_user)])
 
 
-@router.post("/create", response_model=IdResponse)
+@router.post("/create", response_model=IdResponse, dependencies=[Depends(require_role("admin"))])
 async def create_dataset(
     req: DatasetCreateRequest,
     session: AsyncSession = Depends(get_db),
@@ -49,7 +50,12 @@ async def list_datasets(
     items = await DatasetService(session).list(user=user)
     return [
         DatasetResponse(
-            id=ds.id, name=ds.name, description=ds.description, vector_model=ds.vector_model, my_role=role
+            id=ds.id,
+            name=ds.name,
+            description=ds.description,
+            vector_model=ds.vector_model,
+            my_role=role,
+            creator_id=ds.creator_id,
         )
         for ds, role in items
     ]
@@ -63,11 +69,11 @@ async def dataset_detail(
 ):
     ds, role = await DatasetService(session).detail(id, user=user)
     return DatasetResponse(
-        id=ds.id, name=ds.name, description=ds.description, vector_model=ds.vector_model, my_role=role
+        id=ds.id, name=ds.name, description=ds.description, vector_model=ds.vector_model, my_role=role, creator_id=ds.creator_id
     )
 
 
-@router.put("/update", dependencies=[Depends(require_dataset_access("editor"))], response_model=IdResponse)
+@router.put("/update", dependencies=[Depends(require_dataset_access("admin"))], response_model=IdResponse)
 async def update_dataset(
     req: DatasetUpdateRequest,
     session: AsyncSession = Depends(get_db),
@@ -77,7 +83,7 @@ async def update_dataset(
     return IdResponse(id=ds.id)
 
 
-@router.delete("/delete", dependencies=[Depends(require_dataset_access("owner"))], response_model=IdResponse)
+@router.delete("/delete", dependencies=[Depends(require_dataset_access("admin"))], response_model=IdResponse)
 async def delete_dataset(
     id: uuid.UUID,
     session: AsyncSession = Depends(get_db),
@@ -87,7 +93,7 @@ async def delete_dataset(
     return IdResponse(id=id)
 
 
-@router.get("/{dataset_id}/members", dependencies=[Depends(require_dataset_access("viewer"))], response_model=list[DatasetMemberResponse])
+@router.get("/{dataset_id}/members", dependencies=[Depends(require_dataset_access("admin"))], response_model=list[DatasetMemberResponse])
 async def list_members(
     dataset_id: uuid.UUID,
     session: AsyncSession = Depends(get_db),
@@ -105,7 +111,7 @@ async def list_members(
     ]
 
 
-@router.post("/{dataset_id}/members", dependencies=[Depends(require_dataset_access("owner"))], response_model=IdResponse)
+@router.post("/{dataset_id}/members", dependencies=[Depends(require_dataset_access("admin"))], response_model=IdResponse)
 async def add_member(
     dataset_id: uuid.UUID,
     req: DatasetMemberCreateRequest,
@@ -117,7 +123,7 @@ async def add_member(
 
 
 @router.patch(
-    "/{dataset_id}/members/{user_id}", dependencies=[Depends(require_dataset_access("owner"))], response_model=IdResponse
+    "/{dataset_id}/members/{user_id}", dependencies=[Depends(require_dataset_access("admin"))], response_model=IdResponse
 )
 async def update_member(
     dataset_id: uuid.UUID,
@@ -131,7 +137,7 @@ async def update_member(
 
 
 @router.delete(
-    "/{dataset_id}/members/{user_id}", dependencies=[Depends(require_dataset_access("owner"))], response_model=IdResponse
+    "/{dataset_id}/members/{user_id}", dependencies=[Depends(require_dataset_access("admin"))], response_model=IdResponse
 )
 async def remove_member(
     dataset_id: uuid.UUID,

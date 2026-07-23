@@ -9,7 +9,7 @@ from vector_match.repositories.members import DatasetMemberRepository
 from vector_match.repositories.users import UserRepository
 
 ROLE_LEVEL = {"owner": 3, "editor": 2, "viewer": 1}
-VALID_ROLES = ("owner", "editor", "viewer")
+VALID_ROLES = ("editor", "viewer")
 
 
 def _has_enough_role(member: DatasetMember | None, min_role: str) -> bool:
@@ -40,6 +40,8 @@ class MemberService:
         user = await self.users.get_by_username(username)
         if user is None:
             raise HTTPException(status_code=404, detail="user not found")
+        if not user.is_active or not user.is_approved:
+            raise HTTPException(status_code=422, detail="user is not active or approved")
         existing = await self.members.get_valid(dataset_id, user.id)
         if existing is not None:
             raise HTTPException(status_code=409, detail="member already exists")

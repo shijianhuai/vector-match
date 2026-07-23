@@ -6,6 +6,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from pydantic.alias_generators import to_camel
 
 Role = Literal["owner", "editor", "viewer"]
+SiteRole = Literal["superadmin", "admin", "user"]
+MemberRole = Literal["editor", "viewer"]
 
 
 class CamelModel(BaseModel):
@@ -29,6 +31,7 @@ class DatasetResponse(CamelModel):
     description: str
     vector_model: str
     my_role: Role
+    creator_id: int | None = None
 
 
 class IdResponse(CamelModel):
@@ -37,11 +40,11 @@ class IdResponse(CamelModel):
 
 class DatasetMemberCreateRequest(CamelModel):
     username: str = Field(min_length=1)
-    role: Role
+    role: MemberRole
 
 
 class DatasetMemberUpdateRequest(CamelModel):
-    role: Role
+    role: MemberRole
 
 
 class DatasetMemberResponse(CamelModel):
@@ -67,9 +70,9 @@ class UserResponse(CamelModel):
     id: int
     username: str
     email: str | None
-    is_superuser: bool
+    role: SiteRole
+    is_approved: bool
     is_active: bool
-    allow_api_key: bool
     create_time: datetime
 
 
@@ -79,9 +82,9 @@ class UserSearchItem(CamelModel):
 
 
 class UserUpdateRequest(CamelModel):
+    role: SiteRole | None = None
+    is_approved: bool | None = None
     is_active: bool | None = None
-    is_superuser: bool | None = None
-    allow_api_key: bool | None = None
 
 
 class UserListResponse(CamelModel):

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from vector_match.api.deps import get_current_user, get_db, require_api_key_permission
+from vector_match.api.deps import get_current_user, get_db, require_role
 from vector_match.api.schemas import (
     ApiKeyCreateRequest,
     ApiKeyListResponse,
@@ -12,7 +12,7 @@ from vector_match.api.schemas import (
 from vector_match.db.models import User
 from vector_match.services.api_keys import ApiKeyService
 
-router = APIRouter(prefix="/api/api-keys", dependencies=[Depends(require_api_key_permission)])
+router = APIRouter(prefix="/api/api-keys", dependencies=[Depends(require_role("admin"))])
 
 
 @router.get("/", response_model=ApiKeyListResponse)

@@ -1,9 +1,12 @@
+export type SiteRole = "superadmin" | "admin" | "user";
+
 export type AuthUser = {
   id: number;
   username: string;
   email: string | null;
-  isSuperuser: boolean;
-  allowApiKey: boolean;
+  role: SiteRole;
+  isApproved: boolean;
+  isActive: boolean;
 };
 
 export type Role = "owner" | "editor" | "viewer";
@@ -14,6 +17,7 @@ export type Dataset = {
   description: string | null;
   vectorModel: string | null;
   myRole: Role;
+  creatorId: number | null;
 };
 
 export type DatasetMember = {
@@ -27,9 +31,9 @@ export type User = {
   username: string;
   email: string | null;
   createTime: string;
+  role: SiteRole;
+  isApproved: boolean;
   isActive: boolean;
-  isSuperuser: boolean;
-  allowApiKey: boolean;
 };
 
 export type ApiKey = {

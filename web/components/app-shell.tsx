@@ -14,14 +14,13 @@ interface NavItem {
   href: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  superuserOnly?: boolean;
   visible?: (me: AuthUser) => boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/datasets", label: "知识库", icon: DatabaseIcon },
-  { href: "/settings/api-keys", label: "API Keys", icon: KeyRoundIcon, visible: (me) => me.isSuperuser || me.allowApiKey },
-  { href: "/settings/users", label: "用户管理", icon: UsersIcon, superuserOnly: true },
+  { href: "/settings/api-keys", label: "API Keys", icon: KeyRoundIcon, visible: (me) => me.role === "admin" || me.role === "superadmin" },
+  { href: "/settings/users", label: "用户管理", icon: UsersIcon, visible: (me) => me.role === "superadmin" },
 ];
 
 function isActive(pathname: string, href: string): boolean {
@@ -51,7 +50,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { data: me } = useMe();
 
   const items = NAV_ITEMS.filter((item) => {
-    if (item.superuserOnly) return me?.isSuperuser;
     if (item.visible) return me ? item.visible(me) : false;
     return true;
   });

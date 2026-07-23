@@ -15,7 +15,8 @@ class UserRepository:
         username: str,
         email: str | None,
         password_hash: str,
-        is_superuser: bool = False,
+        role: str = "user",
+        is_approved: bool = False,
         is_active: bool = True,
         creator_id: int | None = None,
         updater_id: int | None = None,
@@ -24,7 +25,8 @@ class UserRepository:
             username=username,
             email=email,
             password_hash=password_hash,
-            is_superuser=is_superuser,
+            role=role,
+            is_approved=is_approved,
             is_active=is_active,
             creator_id=creator_id,
             updater_id=updater_id,
@@ -53,22 +55,37 @@ class UserRepository:
         stmt = select(User.id).where(User.email == email, User.isvalid == 1)
         return (await self.session.execute(stmt)).scalar_one_or_none() is not None
 
-    async def list_page(self, offset: int, page_size: int) -> tuple[list[User], int]:
-        stmt_total = select(func.count()).select_from(User).where(User.isvalid == 1)
+    async def list_page(self, offset: int, page_size: int, is_approved: bool | None = None) -> tuple[list[User], int]:
+        conditions = [User.isvalid == 1]
+        if is_approved is not None:
+            conditions.append(User.is_approved == is_approved)
+        stmt_total = select(func.count()).select_from(User).where(*conditions)
         total = await self.session.scalar(stmt_total)
         stmt = (
             select(User)
-            .where(User.isvalid == 1)
+            .where(*conditions)
             .order_by(User.create_time.desc())
             .offset(offset)
             .limit(page_size)
         )
         return list((await self.session.execute(stmt)).scalars().all()), int(total or 0)
 
+    async def count_active_superadmins(self, exclude_user_id: int | None = None) -> int:
+        conditions = [User.isvalid == 1, User.role == "superadmin", User.is_active, User.is_approved]
+        if exclude_user_id is not None:
+            conditions.append(User.id != exclude_user_id)
+        total = await self.session.scalar(select(func.count()).select_from(User).where(*conditions))
+        return int(total or 0)
+
     async def search_valid(self, keyword: str, limit: int) -> list[User]:
         stmt = (
             select(User)
-            .where(User.isvalid == 1, User.username.ilike(f"%{keyword}%"))
+            .where(
+                User.isvalid == 1,
+                User.is_active,
+                User.is_approved,
+                User.username.ilike(f"%{keyword}%"),
+            )
             .order_by(User.create_time.desc())
             .limit(limit)
         )
@@ -77,17 +94,17 @@ class UserRepository:
     async def update_fields(
         self,
         user: User,
+        role: str | None = None,
+        is_approved: bool | None = None,
         is_active: bool | None = None,
-        is_superuser: bool | None = None,
-        allow_api_key: bool | None = None,
         updater_id: int | None = None,
     ) -> None:
+        if role is not None:
+            user.role = role
+        if is_approved is not None:
+            user.is_approved = is_approved
         if is_active is not None:
             user.is_active = is_active
-        if is_superuser is not None:
-            user.is_superuser = is_superuser
-        if allow_api_key is not None:
-            user.allow_api_key = allow_api_key
         if updater_id is not None:
             user.updater_id = updater_id
         await self.session.flush()

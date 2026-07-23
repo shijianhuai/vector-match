@@ -75,15 +75,16 @@ def make_user(db_session):
     async def _make(
         username: str,
         password: str = "password",
-        is_superuser: bool = False,
-        allow_api_key: bool = False,
+        role: str = "user",
+        is_approved: bool = True,
+        is_active: bool = True,
     ):
         svc = UserService(db_session)
         user = await svc.create_user(
-            username=username, password=password, is_superuser=is_superuser
+            username=username, password=password, role=role, is_approved=is_approved
         )
-        if allow_api_key and not is_superuser:
-            user.allow_api_key = True
+        if not is_active:
+            user.is_active = False
             await db_session.commit()
         return user
 
@@ -94,7 +95,7 @@ def make_user(db_session):
 async def superuser(make_user):
     import uuid
 
-    return await make_user(f"superuser-{uuid.uuid4().hex[:8]}", "superpass", is_superuser=True)
+    return await make_user(f"superuser-{uuid.uuid4().hex[:8]}", "superpass", role="superadmin")
 
 
 @pytest.fixture

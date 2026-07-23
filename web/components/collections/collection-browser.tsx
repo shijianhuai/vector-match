@@ -66,7 +66,7 @@ export function CollectionBrowser({
 
   const { data: dataset } = useDataset(datasetId);
   const myRole = dataset?.myRole ?? "viewer";
-  const canEdit = myRole === "owner" || myRole === "editor";
+  const canEdit = myRole === "owner";
 
   const [offset, setOffset] = React.useState(0);
   const [searchText, setSearchText] = React.useState("");

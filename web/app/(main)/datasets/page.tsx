@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import type { Dataset } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useMe } from "@/hooks/use-auth";
 import {
   useCreateDataset,
   useDatasets,
@@ -203,6 +204,12 @@ function DatasetCard({
   onDelete: () => void;
 }) {
   const router = useRouter();
+  const { data: me } = useMe();
+
+  const canEdit = dataset.myRole === "owner";
+  const canDelete =
+    canEdit &&
+    (me?.role === "superadmin" || dataset.creatorId === me?.id);
 
   return (
     <Card
@@ -217,25 +224,29 @@ function DatasetCard({
       }}
       className="group relative cursor-pointer gap-2 p-4 transition-all duration-200 outline-none hover:-translate-y-0.5 hover:ring-foreground/25 focus-visible:ring-2 focus-visible:ring-ring"
     >
-      <div className="absolute top-2 right-2" onClick={(e) => e.stopPropagation()}>
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            aria-label="更多操作"
-            className={cn(
-              buttonVariants({ variant: "ghost", size: "icon-sm" }),
-              "opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 data-popup-open:opacity-100"
-            )}
-          >
-            <EllipsisIcon />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onEdit}>编辑</DropdownMenuItem>
-            <DropdownMenuItem variant="destructive" onClick={onDelete}>
-              删除
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+      {canEdit && (
+        <div className="absolute top-2 right-2" onClick={(e) => e.stopPropagation()}>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label="更多操作"
+              className={cn(
+                buttonVariants({ variant: "ghost", size: "icon-sm" }),
+                "opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 data-popup-open:opacity-100"
+              )}
+            >
+              <EllipsisIcon />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onEdit}>编辑</DropdownMenuItem>
+              {canDelete && (
+                <DropdownMenuItem variant="destructive" onClick={onDelete}>
+                  删除
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
       <div className="flex items-center gap-2.5">
         <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
           <DatabaseIcon className="size-4" />
@@ -258,6 +269,8 @@ export default function DatasetsPage() {
   const [search, setSearch] = React.useState("");
   const [formState, setFormState] = React.useState<FormDialogState>(null);
   const [deleteTarget, setDeleteTarget] = React.useState<Dataset | null>(null);
+  const { data: me } = useMe();
+  const isAdmin = me?.role === "admin" || me?.role === "superadmin";
 
   const { data: datasets, isLoading, isError, refetch } = useDatasets();
   const deleteMutation = useDeleteDataset();
@@ -305,10 +318,12 @@ export default function DatasetsPage() {
               className="w-56 pl-8"
             />
           </div>
-          <Button onClick={() => setFormState({ mode: "create" })}>
-            <PlusIcon />
-            新建知识库
-          </Button>
+          {isAdmin && (
+            <Button onClick={() => setFormState({ mode: "create" })}>
+              <PlusIcon />
+              新建知识库
+            </Button>
+          )}
         </div>
       </div>
 
@@ -344,18 +359,24 @@ export default function DatasetsPage() {
               </p>
             ) : (
               <>
-                <p className="text-sm font-medium">还没有知识库</p>
-                <p className="text-sm text-muted-foreground">
-                  创建第一个知识库，开始组织你的数据。
+                <p className="text-sm font-medium">
+                  {isAdmin ? "还没有知识库" : "暂无可访问的知识库"}
                 </p>
-                <Button
-                  variant="outline"
-                  className="mt-1"
-                  onClick={() => setFormState({ mode: "create" })}
-                >
-                  <PlusIcon />
-                  新建知识库
-                </Button>
+                <p className="text-sm text-muted-foreground">
+                  {isAdmin
+                    ? "创建第一个知识库，开始组织你的数据。"
+                    : "请联系管理员将你加入知识库成员。"}
+                </p>
+                {datasets && datasets.length === 0 && isAdmin && (
+                  <Button
+                    variant="outline"
+                    className="mt-1"
+                    onClick={() => setFormState({ mode: "create" })}
+                  >
+                    <PlusIcon />
+                    新建知识库
+                  </Button>
+                )}
               </>
             )}
           </div>

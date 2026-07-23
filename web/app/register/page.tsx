@@ -66,7 +66,7 @@ function RegisterForm() {
     };
     try {
       await register.mutateAsync(payload);
-      router.push(`/login?username=${encodeURIComponent(values.username)}`);
+      router.push(`/login?username=${encodeURIComponent(values.username)}&pending=1`);
     } catch {
       // 错误已由 hook toast 处理，保持表单状态
     }
