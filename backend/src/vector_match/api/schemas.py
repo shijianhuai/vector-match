@@ -151,7 +151,9 @@ class CollectionResponse(CamelModel):
     parent_id: uuid.UUID | None
     name: str
     type: str
-
+    create_time: datetime
+    update_time: datetime
+    data_count: int | None = None
 
 class CollectionListResponse(CamelModel):
     list: list[CollectionResponse]

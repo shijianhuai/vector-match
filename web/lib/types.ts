@@ -48,6 +48,9 @@ export type Collection = {
   parentId: string | null;
   name: string;
   type: CollectionType;
+  createTime: string;
+  updateTime: string;
+  dataCount?: number | null;
 };
 
 export type DataIndex = {

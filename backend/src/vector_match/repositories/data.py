@@ -54,6 +54,13 @@ class DataRepository:
         stmt = select(DatasetData).where(DatasetData.collection_id.in_(collection_ids), DatasetData.isvalid == 1)
         return list((await self.session.execute(stmt)).scalars().all())
 
+    async def count_by_collection(self, collection_id: uuid.UUID) -> int:
+        total = await self.session.scalar(
+            select(func.count())
+            .select_from(DatasetData)
+            .where(DatasetData.collection_id == collection_id, DatasetData.isvalid == 1)
+        )
+        return int(total or 0)
     async def list_valid_by_keys(self, dataset_id: uuid.UUID, key_ids: Iterable[str]) -> list[DatasetData]:
         key_ids = list(key_ids)
         if not key_ids:

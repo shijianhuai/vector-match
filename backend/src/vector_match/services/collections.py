@@ -42,6 +42,7 @@ class CollectionService:
         col = await self.collections.get(collection_id)
         if col is None:
             raise NotFoundError("collection not found")
+        col.data_count = await self.data.count_by_collection(collection_id)
         return col
 
     async def update(self, collection_id: uuid.UUID, name: str | None = None, operator_id: int | None = None) -> Collection:
